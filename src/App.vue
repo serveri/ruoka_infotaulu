@@ -1,7 +1,20 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import tietoteknia from "./components/tietoteknia.vue";
+</script>
 
 <template>
-   <h1>Ruokalista</h1>
+  <div class="text-white flex justify-center items-center h-screen">
+    <div class="flex gap-5">
+      <div>
+        <tietoteknia/>
+        <tietoteknia/>
+      </div>
+      <div>
+        <tietoteknia/>
+        <tietoteknia/>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped></style>
