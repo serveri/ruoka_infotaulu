@@ -1,2 +1,3 @@
-# -ruoka_infotaulu
+# Ruoka infotaulu
+
 Kampusravintoloiden ruokalistat infotauluille
