@@ -73,33 +73,35 @@ function extractPrice(input) {
 </script>
 
 <template>
-   <div>
+   <div class="w-full">
       <h1 class="text-4xl text-center">{{ data?.RestaurantName }}</h1>
       <h2 class="text-xl py-2 text-center">{{ lunchTime }}</h2>
 
-      <table class="m-5 outline outline-1 outline-gray-900">
-         <tr class="text-lg text-left">
-            <th class="p-2">Menu</th>
-            <th class="p-2">Raaka-aineet</th>
-            <th class="p-2">Hinta</th>
-         </tr>
-         <tr
-            class="outline outline-1 outline-gray-900"
-            v-for="menu in todayMenu?.SetMenus"
-         >
-            <td v-if="menu?.Name !== null" class="p-2 font-bold">
-               {{
-                  menu.Name.charAt(0).toUpperCase() +
-                  menu.Name.toLowerCase().slice(1)
-               }}
-            </td>
-            <td v-if="menu?.Name !== null" class="p-2">
-               {{ menu.Components.map(removeParenthesesContent).join(", ") }}
-            </td>
-            <td v-if="menu.Name !== null" class="text-sm p-2">
-               {{ `${extractPrice(menu.Price)} €` }}
-            </td>
-         </tr>
-      </table>
+      <div class="flex justify-center">
+         <table class="m-5 outline outline-1 outline-gray-500 w-4/5 xl:w-auto">
+            <tr class="text-lg text-left">
+               <th class="p-2">Menu</th>
+               <th class="p-2">Raaka-aineet</th>
+               <th class="p-2">Hinta</th>
+            </tr>
+            <tr
+               class="outline outline-1 outline-gray-500"
+               v-for="menu in todayMenu?.SetMenus"
+            >
+               <td v-if="menu?.Name !== null" class="p-2 font-bold">
+                  {{
+                     menu.Name.charAt(0).toUpperCase() +
+                     menu.Name.toLowerCase().slice(1)
+                  }}
+               </td>
+               <td v-if="menu?.Name !== null" class="p-2">
+                  {{ menu.Components.map(removeParenthesesContent).join(", ") }}
+               </td>
+               <td v-if="menu.Name !== null" class="text-sm p-2">
+                  {{ `${extractPrice(menu.Price)} €` }}
+               </td>
+            </tr>
+         </table>
+      </div>
    </div>
 </template>
