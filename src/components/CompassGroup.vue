@@ -49,7 +49,7 @@ onMounted(async () => {
    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
    todayMenu.value = data.value?.MenusForDays.find(
       (menu) => menu.Date.slice(0, 10) === tomorrow
-   );
+   ) || null;
    lunchTime.value = todayMenu.value?.LunchTime;
    console.log(todayMenu.value?.SetMenus);
 });
@@ -59,7 +59,8 @@ onMounted(async () => {
 function removeParenthesesContent(input: string): string {
    return input.replace(/\(.*?\)/g, "").slice(0, -1);
 }
-function extractPrice(input) {
+function extractPrice(input: string | null) {
+    if (input === null) return 0;
    const matchOp = input.match(/Op\s*(\d+,\d+)\s*€?/);
    const matchOpisk = input.match(/opisk\.\s*(\d+,\d+)\s*€?/);
    if (matchOp) {
