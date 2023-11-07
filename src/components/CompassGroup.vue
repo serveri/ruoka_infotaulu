@@ -35,7 +35,7 @@ const lunchTime = ref<string | null | undefined>(null);
 const todayMenu = ref<MenusForDay | null>(null);
 
 async function fetchData() {
-   const response = await fetch(`${window.location}${props.url}`);
+   const response = await fetch(`https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi`);
    if (!response.ok) {
       const message = `An error has occurred: ${response.status}`;
       throw new Error(message);
