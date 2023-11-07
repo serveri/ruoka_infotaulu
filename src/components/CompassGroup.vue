@@ -35,11 +35,8 @@ const lunchTime = ref<string | null | undefined>(null);
 const todayMenu = ref<MenusForDay | null>(null);
 
 async function fetchData() {
-   const response = await fetch(
-      `https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi`
-   );
+   const response = await fetch(`${window.location}${props.url}`);
    if (!response.ok) {
-     console.log(props.url)
       const message = `An error has occurred: ${response.status}`;
       throw new Error(message);
    }
@@ -50,10 +47,9 @@ async function fetchData() {
 onMounted(async () => {
    data.value = await fetchData();
    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-   todayMenu.value =
-      data.value?.MenusForDays.find(
-         (menu) => menu.Date.slice(0, 10) === tomorrow
-      ) || null;
+   todayMenu.value = data.value?.MenusForDays.find(
+      (menu) => menu.Date.slice(0, 10) === tomorrow
+   ) || null;
    lunchTime.value = todayMenu.value?.LunchTime;
    console.log(todayMenu.value?.SetMenus);
 });
@@ -64,7 +60,7 @@ function removeParenthesesContent(input: string): string {
    return input.replace(/\(.*?\)/g, "").slice(0, -1);
 }
 function extractPrice(input: string | null) {
-   if (input === null) return 0;
+    if (input === null) return 0;
    const matchOp = input.match(/Op\s*(\d+,\d+)\s*€?/);
    const matchOpisk = input.match(/opisk\.\s*(\d+,\d+)\s*€?/);
    if (matchOp) {
