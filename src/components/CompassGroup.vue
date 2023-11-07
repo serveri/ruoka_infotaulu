@@ -35,7 +35,7 @@ const lunchTime = ref<string | null | undefined>(null);
 const todayMenu = ref<MenusForDay | null>(null);
 
 async function fetchData() {
-   const response = await fetch(`http://localhost:5173/${props.url}`);
+   const response = await fetch(`${window.location}${props.url}`);
    if (!response.ok) {
       const message = `An error has occurred: ${response.status}`;
       throw new Error(message);
