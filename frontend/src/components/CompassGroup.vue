@@ -32,10 +32,11 @@ interface SetMenu {
 
 const data = ref<Menu | null | undefined>(null);
 const lunchTime = ref<string | null | undefined>(null);
+const date = ref<string | null | undefined>(null);
 const todayMenu = ref<MenusForDay | null>(null);
 
 async function fetchData() {
-   const response = await fetch(`${window.location}${props.url}`);
+   const response = await fetch(`${props.url}`);
    if (!response.ok) {
       const message = `An error has occurred: ${response.status}`;
       throw new Error(message);
@@ -46,12 +47,24 @@ async function fetchData() {
 
 onMounted(async () => {
    data.value = await fetchData();
+   const today = new Date().toISOString().slice(0, 10);
    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-   todayMenu.value = data.value?.MenusForDays.find(
-      (menu) => menu.Date.slice(0, 10) === tomorrow
-   ) || null;
+
+   date.value = today;
+
+   let menu = data.value?.MenusForDays.find(
+      (menu) => menu.Date.slice(0, 10) === today
+   );
+
+   if (!menu) {
+      date.value = tomorrow;
+      menu = data.value?.MenusForDays.find(
+         (menu) => menu.Date.slice(0, 10) === tomorrow
+      );
+   }
+
+   todayMenu.value = menu || null;
    lunchTime.value = todayMenu.value?.LunchTime;
-   console.log(todayMenu.value?.SetMenus);
 });
 </script>
 
@@ -60,7 +73,7 @@ function removeParenthesesContent(input: string): string {
    return input.replace(/\(.*?\)/g, "").slice(0, -1);
 }
 function extractPrice(input: string | null) {
-    if (input === null) return 0;
+   if (input === null) return 0;
    const matchOp = input.match(/Op\s*(\d+,\d+)\s*€?/);
    const matchOpisk = input.match(/opisk\.\s*(\d+,\d+)\s*€?/);
    if (matchOp) {
@@ -74,9 +87,17 @@ function extractPrice(input: string | null) {
 </script>
 
 <template>
-   <div class="w-full">
+   <section class="w-full">
       <h1 class="text-4xl text-center">{{ data?.RestaurantName }}</h1>
-      <h2 class="text-xl py-2 text-center">{{ lunchTime }}</h2>
+      <h2 class="text-xl py-2 text-center">
+         {{
+            `${new Date(date).toLocaleDateString("fi-FI", {
+               day: "numeric",
+               month: "numeric",
+               weekday: "long"
+            })} ${lunchTime}`
+         }}
+      </h2>
 
       <div class="flex justify-center">
          <table class="m-5 outline outline-1 outline-gray-500 w-4/5 xl:w-auto">
@@ -104,5 +125,5 @@ function extractPrice(input: string | null) {
             </tr>
          </table>
       </div>
-   </div>
+   </section>
 </template>
