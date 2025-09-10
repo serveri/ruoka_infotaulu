@@ -9,6 +9,7 @@ const app = express();
 const corsOptions = {
     origin: [
         'https://lunchmenu.s.serveriry.fi',
+        'https://lunch.serveriry.fi',
         'http://localhost:5173',
         'http://localhost:4173'
     ],
