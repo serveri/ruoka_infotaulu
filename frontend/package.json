@@ -7,7 +7,7 @@
       "dev": "vite",
       "dev-host": "vite --host",
       "build": "vue-tsc && vite build",
-      "preview": "vite preview",
+      "preview": "vite preview --host",
       "format": "prettier .  --write"
    },
    "dependencies": {
