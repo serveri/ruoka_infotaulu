@@ -1,8 +1,21 @@
 import express from 'express';
 import {createProxyMiddleware} from 'http-proxy-middleware';
 import morgan from 'morgan';
+import cors from 'cors';
 
 const app = express();
+
+// CORS configuration
+const corsOptions = {
+    origin: [
+        'https://lunchmenu.s.serveriry.fi',
+        'http://localhost:5173',
+        'http://localhost:4173'
+    ],
+    credentials: true
+};
+
+app.use(cors(corsOptions));
 
 // use morgan middleware for logging
 app.use(morgan('dev'));
