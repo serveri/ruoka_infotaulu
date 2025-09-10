@@ -94,7 +94,7 @@ function extractPrice(input: string | null) {
 </script>
 
 <template>
-   <div class="h-full overflow-hidden shadow-menu flex flex-col rounded-lg">
+   <div class="h-full overflow-hidden shadow-menu dark:shadow-none dark:border md:dark:border-none flex flex-col rounded-lg">
       <!-- Card Header with gradient background -->
       <div class="bg-gradient-fresh text-white p-3 flex-shrink-0">
          <div class="flex items-center justify-between text-xs opacity-90">
@@ -109,7 +109,7 @@ function extractPrice(input: string | null) {
       </div>
 
       <!-- Card Content -->
-      <div class="p-3 bg-card flex-1 overflow-hidden">
+      <div class="p-3 bg-card dark:bg-transparent flex-1 overflow-hidden">
          <div class="space-y-1 h-full overflow-y-auto">
             <!-- Use fallback array to satisfy TS and avoid undefined -->
             <template v-for="menu in (todayMenu?.SetMenus ?? [])" :key="menu.SortOrder">
