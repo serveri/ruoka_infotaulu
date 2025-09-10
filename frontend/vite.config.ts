@@ -31,5 +31,8 @@ export default defineConfig({
             rewrite: (path) => path.replace(/^\/canthia/, "")
          }
       }
+   },
+   preview: {
+      allowedHosts: ["lunchmenu.s.serveriry.fi", "lunch.serveriry.fi"]
    }
 });
