@@ -39,14 +39,19 @@
       <meta name="color-scheme" content="light dark" />
       <script>
          (function () {
-           const media = window.matchMedia('(prefers-color-scheme: dark)');
-           const apply = () => {
-             document.documentElement.classList.toggle('dark', media.matches);
-           };
-           apply();
-           media.addEventListener('change', apply);
+            const media = window.matchMedia("(prefers-color-scheme: dark)");
+            const apply = () => {
+               document.documentElement.classList.toggle("dark", media.matches);
+            };
+            apply();
+            media.addEventListener("change", apply);
          })();
       </script>
+      <script
+         defer
+         data-domain="lunch.serveriry.fi"
+         src="https://analytics.bittive.com/js/script.outbound-links.js"
+      ></script>
    </head>
    <body>
       <div id="app"></div>
