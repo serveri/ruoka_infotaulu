@@ -11,7 +11,7 @@ const today = new Date();
    <div class="bg-gradient-subtle p-4">
       <header class="text-center mb-4">
          <h1 class="text-2xl font-bold text-primary mb-1">
-            Campus Restaurant Menus
+            Kuopio Campus Restaurant Menus
          </h1>
          <p class="text-sm text-muted-foreground">
             {{
