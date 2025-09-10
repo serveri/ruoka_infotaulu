@@ -94,7 +94,7 @@ function extractPrice(input: string | null) {
 </script>
 
 <template>
-   <div class="h-full overflow-hidden shadow-menu dark:shadow-none dark:border md:dark:border-none flex flex-col rounded-lg">
+   <div class="h-full overflow-hidden shadow-menu dark:shadow-none md:dark:border flex flex-col rounded-lg">
       <!-- Card Header with gradient background -->
       <div class="bg-gradient-fresh text-white p-3 flex-shrink-0">
          <div class="flex items-center justify-between text-xs opacity-90">
