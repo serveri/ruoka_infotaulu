@@ -1,6 +1,6 @@
 export default {
-   darkMode: ["class"],
-   content: ["./pages/**/*.{ts,tsx,vue}", "./components/**/*.{ts,tsx,vue}", "./app/**/*.{ts,tsx,vue}", "./src/**/*.{ts,tsx,vue}"],
+   darkMode: "class",
+   content: ["./index.html", "./pages/**/*.{ts,tsx,vue}", "./components/**/*.{ts,tsx,vue}", "./app/**/*.{ts,tsx,vue}", "./src/**/*.{ts,tsx,vue}"],
    prefix: "",
    theme: {
       container: {

@@ -35,17 +35,20 @@
       <meta name="theme-color" content="#10b981" />
       <meta name="application-name" content="Ruoka infotaulu" />
       <meta name="apple-mobile-web-app-title" content="Ruoka infotaulu" />
-       <script>
-           // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-           if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-               document.documentElement.classList.add('dark');
-           } else {
-               document.documentElement.classList.remove('dark')
-           }
-       </script>
-
+      <!-- Enable UA theming and ensure initial color scheme matches OS -->
+      <meta name="color-scheme" content="light dark" />
+      <script>
+         (function () {
+           const media = window.matchMedia('(prefers-color-scheme: dark)');
+           const apply = () => {
+             document.documentElement.classList.toggle('dark', media.matches);
+           };
+           apply();
+           media.addEventListener('change', apply);
+         })();
+      </script>
    </head>
-   <body class="bg-black">
+   <body>
       <div id="app"></div>
       <script type="module" src="/src/main.ts"></script>
    </body>
