@@ -2,8 +2,10 @@ import express from 'express';
 import {createProxyMiddleware} from 'http-proxy-middleware';
 import morgan from 'morgan';
 import cors from 'cors';
+import apicache from 'apicache';
 
 const app = express();
+const cache = apicache.middleware;
 
 // CORS configuration
 const corsOptions = {
@@ -20,6 +22,9 @@ app.use(cors(corsOptions));
 
 // use morgan middleware for logging
 app.use(morgan('dev'));
+
+const cacheTime = '1 hour'
+app.use(cache(cacheTime));
 
 app.use('/tietoteknia', createProxyMiddleware({
     target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi',
