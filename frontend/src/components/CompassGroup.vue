@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { Clock } from "lucide-vue-next";
 
 const props = defineProps({
    url: {
@@ -53,13 +54,13 @@ onMounted(async () => {
    date.value = today;
 
    let menu = data.value?.MenusForDays.find(
-      (menu) => menu.Date.slice(0, 10) === today
+      (m: MenusForDay) => m.Date.slice(0, 10) === today
    );
 
    if (!menu) {
       date.value = tomorrow;
       menu = data.value?.MenusForDays.find(
-         (menu) => menu.Date.slice(0, 10) === tomorrow
+         (m: MenusForDay) => m.Date.slice(0, 10) === tomorrow
       );
    }
 
@@ -93,43 +94,50 @@ function extractPrice(input: string | null) {
 </script>
 
 <template>
-   <section class="w-full rounded-lg">
-      <h1 class="text-2xl text-center text-gray-900 dark:text-white pt-4">{{ data?.RestaurantName }}</h1>
-      <h2 class="text-lg text-gray-500 dark:text-gray-400 py-2 text-center">
-         {{
-            `${new Date(date || '').toLocaleDateString("fi-FI", {
-               day: "numeric",
-               month: "numeric",
-               weekday: "long"
-            })} ${lunchTime}`
-         }}
-      </h2>
-
-      <div class="flex justify-center">
-         <table class="m-5 border border-gray-300 dark:border-gray-600 w-full max-w-2xl">
-            <tr class="text-lg text-left bg-gray-50 dark:bg-gray-700">
-               <th class="p-2 text-gray-900 dark:text-white">Menu</th>
-               <th class="p-2 text-gray-900 dark:text-white">Raaka-aineet</th>
-               <th class="p-2 text-gray-900 dark:text-white">Hinta</th>
-            </tr>
-            <tr
-               class="border-t border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-               v-for="menu in todayMenu?.SetMenus"
-            >
-               <td v-if="menu?.Name !== null" class="p-2 font-bold text-gray-900 dark:text-white">
-                  {{
-                     menu.Name.charAt(0).toUpperCase() +
-                     menu.Name.toLowerCase().slice(1)
-                  }}
-               </td>
-               <td v-if="menu?.Name !== null" class="p-2 text-gray-700 dark:text-gray-300">
-                  {{ menu.Components.map(removeParenthesesContent).join(", ") }}
-               </td>
-               <td v-if="menu.Name !== null" class="text-sm p-2 text-gray-900 dark:text-white">
-                  {{ `${extractPrice(menu.Price)} €` }}
-               </td>
-            </tr>
-         </table>
+   <div class="h-full overflow-hidden shadow-menu flex flex-col rounded-lg">
+      <!-- Card Header with gradient background -->
+      <div class="bg-gradient-fresh text-white p-3 flex-shrink-0">
+         <div class="flex items-center justify-between text-xs opacity-90">
+            <div class="flex items-center gap-1">
+              <h1 class="text-lg font-bold mb-1">{{ data?.RestaurantName }}</h1>
+            </div>
+            <div class="flex items-center gap-1">
+               <Clock class="w-3 h-3" />
+               <span>{{ lunchTime || 'Lunch hours' }}</span>
+            </div>
+         </div>
       </div>
-   </section>
+
+      <!-- Card Content -->
+      <div class="p-3 bg-card flex-1 overflow-hidden">
+         <div class="space-y-1 h-full overflow-y-auto">
+            <!-- Use fallback array to satisfy TS and avoid undefined -->
+            <template v-for="menu in (todayMenu?.SetMenus ?? [])" :key="menu.SortOrder">
+               <div
+                  v-if="menu && menu.Name !== null"
+                  class="flex justify-between items-start gap-2 py-1 border-b border-border/20 last:border-b-0"
+               >
+                  <div class="flex-1 min-w-0">
+                     <div class="flex items-start justify-between gap-2">
+                        <h4 class="font-semibold text-card-foreground text-xs leading-tight">
+                           {{ menu.Name?.charAt(0).toUpperCase() + menu.Name?.toLowerCase().slice(1) }}
+                        </h4>
+                        <span class="text-sm font-bold text-accent shrink-0">
+                           {{ `${extractPrice(menu.Price)} €` }}
+                        </span>
+                     </div>
+                     <p class="text-muted-foreground leading-tight line-clamp-2">
+                        {{ menu.Components.map(removeParenthesesContent).join(", ") }}
+                     </p>
+                  </div>
+               </div>
+            </template>
+
+            <!-- Empty state -->
+            <div v-if="!todayMenu?.SetMenus || todayMenu?.SetMenus.length === 0" class="text-center py-8">
+               <p class="text-gray-500 dark:text-gray-400">Ei ruokalistaa saatavilla tälle päivälle</p>
+            </div>
+         </div>
+      </div>
+   </div>
 </template>
