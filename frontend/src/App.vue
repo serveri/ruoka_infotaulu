@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
       <div
          class="gap-5 py-4 flex items-center justify-center h-min-screen flex-col"
       >
-         <div class="grid grid-cols-2 gap-5">
+         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
             <CompassGroup :url="`${API_URL}/tietoteknia`" />
             <CompassGroup :url="`${API_URL}/snelmannia`" />
             <CompassGroup :url="`${API_URL}/canthia`" />
