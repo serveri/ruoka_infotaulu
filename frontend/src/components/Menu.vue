@@ -75,6 +75,20 @@ function removeParenthesesContent(input: string): string {
 }
 function extractPrice(input: string | null) {
    if (input === null) return 0;
+   
+   // Handle Antell format first (e.g., "12,70/2,95 €")
+   if (input.includes('/')) {
+      const parts = input.split('/');
+      if (parts.length === 2) {
+         // Extract the student price (after slash) and remove € symbol
+         const studentPrice = parts[1].replace(/\s*€\s*$/, '').trim();
+         const match = studentPrice.match(/(\d+,\d+)/);
+         if (match) {
+            return match[1];
+         }
+      }
+   }
+   
    // Match "Opiskelija" price first (most specific)
    const matchOpiskelija = input.match(/Opiskelija\s*(\d+,\d+)\s*€?/);
    if (matchOpiskelija) {

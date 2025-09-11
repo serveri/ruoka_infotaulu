@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import CompassGroup from "./components/CompassGroup.vue";
-import Antell from "./components/Antell.vue";
+import Menu from "./components/Menu.vue";
 
 // Define the API URL - you can also use environment variables here
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
@@ -32,10 +31,10 @@ const today = new Date();
          </p>
       </header>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <CompassGroup :url="`${API_URL}/tietoteknia`" />
-         <CompassGroup :url="`${API_URL}/snelmannia`" />
-         <CompassGroup :url="`${API_URL}/canthia`" />
-         <Antell />
+         <Menu :url="`${API_URL}/tietoteknia`" />
+         <Menu :url="`${API_URL}/snelmannia`" />
+         <Menu :url="`${API_URL}/canthia`" />
+         <Menu :url="`${API_URL}/antell-round`" />
       </div>
       <footer
          class="text-primary w-full flex flex-col justify-center items-center p-4"
