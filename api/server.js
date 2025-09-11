@@ -11,7 +11,7 @@ const cache = apicache.middleware;
 
 // CORS configuration
 const corsOptions = {
-    origin: [
+    origins: [
         'https://lunchmenu.s.serveriry.fi',
         'https://lunch.serveriry.fi',
         'http://localhost:5173',
@@ -33,14 +33,6 @@ app.use('/tietoteknia', createProxyMiddleware({
     changeOrigin: true,
     pathRewrite: {
         '^/tietoteknia': ''
-    },
-}));
-
-app.use('/antell', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=3488&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/antell': ''
     },
 }));
 
@@ -76,7 +68,11 @@ app.get('/antell-round', async (req, res) => {
                 RestaurantUrl: 'https://www.antell.fi/round/',
                 PriceHeader: null,
                 Footer: 'Antell Round. Lounas ma-pe kello 10.00-13.30.',
-                MenusForDays: [],
+                MenusForDays: [{
+                    Date: new Date().toISOString().split('T')[0],
+                    LunchTime: '10.00-13.30',
+                    SetMenus: []
+                }],
                 ErrorText: 'Menu not found'
             });
         }
@@ -131,12 +127,15 @@ app.get('/antell-round', async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching Antell menu:', error);
-        res.status(500).json({ 
+        res.status(200).json({ 
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
             Footer: 'Antell Round',
-            MenusForDays: [],
+            MenusForDays: [{
+                Date: new Date().toISOString().split('T')[0],
+                LunchTime: '10.00-13.30',
+            }],
             ErrorText: 'Failed to fetch menu'
         });
     }
