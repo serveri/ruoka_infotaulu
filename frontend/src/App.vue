@@ -9,7 +9,7 @@ const today = new Date();
 
 <template>
    <div class="bg-gradient-subtle p-4">
-      <header class="text-center mb-4">
+      <header class="text-center mb-4 xl:hidden">
          <h1 class="text-2xl font-bold text-primary mb-1">
             Kuopio Campus Restaurant Menus
          </h1>
