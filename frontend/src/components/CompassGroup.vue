@@ -103,7 +103,7 @@ function extractPrice(input: string | null) {
             </div>
             <div class="flex items-center gap-1">
                <Clock class="w-3 h-3" />
-               <span>{{ lunchTime || 'Lunch hours' }}</span>
+               <span class="text-sm">{{ lunchTime || 'Lunch hours' }}</span>
             </div>
          </div>
       </div>
@@ -126,7 +126,7 @@ function extractPrice(input: string | null) {
                            {{ `${extractPrice(menu.Price)} €` }}
                         </span>
                      </div>
-                     <p class="text-muted-foreground leading-tight line-clamp-2">
+                     <p class="text-muted-foreground leading-tight line-clamp-2, text-sm mt-0.5">
                         {{ menu.Components.map(removeParenthesesContent).join(", ") }}
                      </p>
                   </div>
