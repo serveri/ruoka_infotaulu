@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { Clock } from "lucide-vue-next";
 
 const props = defineProps({
@@ -34,6 +34,34 @@ const data = ref<Menu | null | undefined>(null);
 const lunchTime = ref<string | null | undefined>(null);
 const date = ref<string | null | undefined>(null);
 const todayMenu = ref<MenusForDay | null>(null);
+
+// Computed property to sort menu items - lounas items first, then by price
+const sortedMenuItems = computed(() => {
+   if (!todayMenu.value?.SetMenus) return [];
+   
+   return [...todayMenu.value.SetMenus].sort((a, b) => {
+      const aIsLounas = a.Name?.toLowerCase().includes('lounas') || false;
+      const bIsLounas = b.Name?.toLowerCase().includes('lounas') || false;
+      
+      // If one is lounas and the other isn't, prioritize lounas
+      if (aIsLounas && !bIsLounas) return -1;
+      if (!aIsLounas && bIsLounas) return 1;
+      
+      // Sort by price based on whether items are lounas or not
+      const aPriceStr = extractPrice(a.Price);
+      const bPriceStr = extractPrice(b.Price);
+      
+      const aPrice = parseFloat(String(aPriceStr).replace(',', '.')) || 999;
+      const bPrice = parseFloat(String(bPriceStr).replace(',', '.')) || 999;
+      
+      // Lounas items: lowest price first, Non-lounas items: highest price first
+      if (aIsLounas && bIsLounas) {
+         return aPrice - bPrice; // Lowest first for lounas
+      } else {
+         return bPrice - aPrice; // Highest first for non-lounas
+      }
+   });
+});
 
 async function fetchData() {
    const response = await fetch(`${props.url}`);
@@ -133,8 +161,8 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
       <!-- Card Content -->
       <div class="p-3 bg-card dark:bg-transparent flex-1 overflow-hidden">
          <div class="space-y-1 h-full overflow-y-auto">
-            <!-- Use fallback array to satisfy TS and avoid undefined -->
-            <template v-for="menu in (todayMenu?.SetMenus ?? [])" :key="menu.SortOrder">
+            <!-- Use sorted menu items -->
+            <template v-for="menu in sortedMenuItems" :key="menu.SortOrder">
                <div
                   v-if="menu && menu.Name !== null"
                   class="flex justify-between items-start gap-2 py-1 border-b border-border/20 last:border-b-0"
@@ -156,7 +184,7 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
             </template>
 
             <!-- Empty state -->
-            <div v-if="!todayMenu?.SetMenus || todayMenu?.SetMenus.length === 0" class="text-center py-8">
+            <div v-if="sortedMenuItems.length === 0" class="text-center py-8">
                <p class="text-gray-500 dark:text-gray-400">Ei ruokalistaa saatavilla tälle päivälle</p>
             </div>
          </div>

@@ -1,5 +1,4 @@
 import express from 'express';
-import {createProxyMiddleware} from 'http-proxy-middleware';
 import morgan from 'morgan';
 import cors from 'cors';
 import axios from 'axios';
@@ -28,29 +27,113 @@ app.use(morgan('dev'));
 const cacheTime = '1 hour'
 app.use(cache(cacheTime));
 
-app.use('/tietoteknia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/tietoteknia': ''
-    },
-}));
+// Custom endpoint for Tietoteknia with sorting
+app.get('/tietoteknia', async (req, res) => {
+    try {
+        const response = await axios.get('https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi');
+        const data = response.data;
+        
+        // Sort menu items in each day
+        if (data.MenusForDays) {
+            data.MenusForDays.forEach(day => {
+                if (day.SetMenus) {
+                    day.SetMenus.sort((a, b) => {
+                        const aHasLounas = a.Name?.toLowerCase().includes('lounas') || false;
+                        const bHasLounas = b.Name?.toLowerCase().includes('lounas') || false;
+                        
+                        if (aHasLounas === bHasLounas) {
+                            return a.SortOrder - b.SortOrder;
+                        }
+                        
+                        return bHasLounas ? 1 : -1;
+                    });
+                    
+                    // Update SortOrder after sorting
+                    day.SetMenus.forEach((item, index) => {
+                        item.SortOrder = index + 1;
+                    });
+                }
+            });
+        }
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching Tietoteknia menu:', error);
+        res.status(500).json({ error: 'Failed to fetch menu' });
+    }
+});
 
-app.use('/snelmannia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/snelmannia': ''
-    },
-}));
+// Custom endpoint for Snelmannia with sorting
+app.get('/snelmannia', async (req, res) => {
+    try {
+        const response = await axios.get('https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=fi');
+        const data = response.data;
+        
+        // Sort menu items in each day
+        if (data.MenusForDays) {
+            data.MenusForDays.forEach(day => {
+                if (day.SetMenus) {
+                    day.SetMenus.sort((a, b) => {
+                        const aHasLounas = a.Name?.toLowerCase().includes('lounas') || false;
+                        const bHasLounas = b.Name?.toLowerCase().includes('lounas') || false;
+                        
+                        if (aHasLounas === bHasLounas) {
+                            return a.SortOrder - b.SortOrder;
+                        }
+                        
+                        return bHasLounas ? 1 : -1;
+                    });
+                    
+                    // Update SortOrder after sorting
+                    day.SetMenus.forEach((item, index) => {
+                        item.SortOrder = index + 1;
+                    });
+                }
+            });
+        }
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching Snelmannia menu:', error);
+        res.status(500).json({ error: 'Failed to fetch menu' });
+    }
+});
 
-app.use('/canthia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/canthia': ''
-    },
-}));
+// Custom endpoint for Canthia with sorting
+app.get('/canthia', async (req, res) => {
+    try {
+        const response = await axios.get('https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi');
+        const data = response.data;
+        
+        // Sort menu items in each day
+        if (data.MenusForDays) {
+            data.MenusForDays.forEach(day => {
+                if (day.SetMenus) {
+                    day.SetMenus.sort((a, b) => {
+                        const aHasLounas = a.Name?.toLowerCase().includes('lounas') || false;
+                        const bHasLounas = b.Name?.toLowerCase().includes('lounas') || false;
+                        
+                        if (aHasLounas === bHasLounas) {
+                            return a.SortOrder - b.SortOrder;
+                        }
+                        
+                        return bHasLounas ? 1 : -1;
+                    });
+                    
+                    // Update SortOrder after sorting
+                    day.SetMenus.forEach((item, index) => {
+                        item.SortOrder = index + 1;
+                    });
+                }
+            });
+        }
+        
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching Canthia menu:', error);
+        res.status(500).json({ error: 'Failed to fetch menu' });
+    }
+});
 
 // Antell HTML parsing endpoint
 app.get('/antell-round', async (req, res) => {
@@ -106,6 +189,25 @@ app.get('/antell-round', async (req, res) => {
                 Price: price,
                 Components: cleanDescription ? [cleanDescription] : []
             });
+        });
+
+        // Sort menu items to put "lounas" items at the top
+        setMenus.sort((a, b) => {
+            const aHasLounas = a.Name?.toLowerCase().includes('lounas') || false;
+            const bHasLounas = b.Name?.toLowerCase().includes('lounas') || false;
+            
+            // If both or neither have "lounas", maintain original order
+            if (aHasLounas === bHasLounas) {
+                return a.SortOrder - b.SortOrder;
+            }
+            
+            // Put "lounas" items first
+            return bHasLounas ? 1 : -1;
+        });
+
+        // Update SortOrder after sorting
+        setMenus.forEach((item, index) => {
+            item.SortOrder = index + 1;
         });
 
         // Get current date in ISO format
