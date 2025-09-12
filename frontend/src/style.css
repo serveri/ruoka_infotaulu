@@ -5,33 +5,33 @@
 @layer base {
     :root {
         --background: 45 100% 97%;
-        --foreground: 158 64% 10%;
+        --foreground: 193 92% 20%;
 
         --card: 0 0% 100%;
-        --card-foreground: 158 64% 10%;
+        --card-foreground: 193 92% 20%;
 
         --popover: 0 0% 100%;
-        --popover-foreground: 158 64% 10%;
+        --popover-foreground: 193 92% 20%;
 
-        --primary: 158 64% 15%;
+        --primary: 193 92% 30%;
         --primary-foreground: 45 100% 97%;
 
-        --secondary: 158 30% 92%;
-        --secondary-foreground: 158 64% 15%;
+        --secondary: 193 30% 92%;
+        --secondary-foreground: 193 92% 30%;
 
-        --muted: 158 15% 95%;
+        --muted: 193 15% 95%;
         --muted-foreground: 79 100% 0%;
 
-        --accent: 79 100% 0%;
+        --accent: 0 0% 0%;
         /*--accent: 193, 92%, 30%; UEF CYAN*/
         --accent-foreground: 0 0% 100%;
 
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 210 40% 98%;
 
-        --border: 158 20% 88%;
-        --input: 158 20% 88%;
-        --ring: 158 64% 15%;
+        --border: 193 20% 88%;
+        --input: 193 20% 88%;
+        --ring: 193 92% 30%;
 
         --radius: 0.75rem;
 
@@ -45,7 +45,7 @@
 
         /* Gradients */
         --gradient-warm: linear-gradient(135deg, hsl(25 95% 53%), hsl(15 90% 58%));
-        --gradient-fresh: linear-gradient(135deg, hsl(158 64% 15%), hsl(158 50% 25%));
+        --gradient-fresh: linear-gradient(135deg, hsl(192, 74%, 32%), hsl(193, 94%, 20%));
         --gradient-uef: linear-gradient(135deg, hsl(192, 92%, 20%), hsl(193, 92%, 30%));
         --gradient-subtle: linear-gradient(180deg, hsl(45 100% 97%), hsl(158 15% 95%));
 
