@@ -38,22 +38,22 @@ const todayMenu = ref<MenusForDay | null>(null);
 // Computed property to sort menu items - lounas items first, then by price
 const sortedMenuItems = computed(() => {
    if (!todayMenu.value?.SetMenus) return [];
-   
+
    return [...todayMenu.value.SetMenus].sort((a, b) => {
-      const aIsLounas = a.Name?.toLowerCase().includes('lounas') || false;
-      const bIsLounas = b.Name?.toLowerCase().includes('lounas') || false;
-      
+      const aIsLounas = a.Name?.toLowerCase().includes("lounas") || false;
+      const bIsLounas = b.Name?.toLowerCase().includes("lounas") || false;
+
       // If one is lounas and the other isn't, prioritize lounas
       if (aIsLounas && !bIsLounas) return -1;
       if (!aIsLounas && bIsLounas) return 1;
-      
+
       // Sort by price based on whether items are lounas or not
       const aPriceStr = extractPrice(a.Price);
       const bPriceStr = extractPrice(b.Price);
-      
-      const aPrice = parseFloat(String(aPriceStr).replace(',', '.')) || 999;
-      const bPrice = parseFloat(String(bPriceStr).replace(',', '.')) || 999;
-      
+
+      const aPrice = parseFloat(String(aPriceStr).replace(",", ".")) || 999;
+      const bPrice = parseFloat(String(bPriceStr).replace(",", ".")) || 999;
+
       // Lounas items: lowest price first, Non-lounas items: highest price first
       if (aIsLounas && bIsLounas) {
          return aPrice - bPrice; // Lowest first for lounas
@@ -102,20 +102,20 @@ function removeParenthesesContent(input: string): string {
 }
 function extractPrice(input: string | null) {
    if (input === null) return 0;
-   
+
    // Handle Antell format first (e.g., "12,70/2,95 €")
-   if (input.includes('/')) {
-      const parts = input.split('/');
+   if (input.includes("/")) {
+      const parts = input.split("/");
       if (parts.length === 2) {
          // Extract the student price (after slash) and remove € symbol
-         const studentPrice = parts[1].replace(/\s*€\s*$/, '').trim();
+         const studentPrice = parts[1].replace(/\s*€\s*$/, "").trim();
          const match = studentPrice.match(/(\d+,\d+)/);
          if (match) {
             return match[1];
          }
       }
    }
-   
+
    // Match "Opiskelija" price first (most specific)
    const matchOpiskelija = input.match(/Opiskelija\s*(\d+,\d+)\s*€?/);
    if (matchOpiskelija) {
@@ -134,26 +134,32 @@ function extractPrice(input: string | null) {
 }
 
 function getDayShortFromDate(dateString: string | null | undefined): string {
-   if (!dateString) return '';
-   
-   const days = ['Su', 'Ma', 'Ti', 'Ke', 'To', 'Pe', 'La'];
+   if (!dateString) return "";
+
+   const days = ["Su", "Ma", "Ti", "Ke", "To", "Pe", "La"];
    const date = new Date(dateString);
    return days[date.getDay()];
 }
 </script>
 
 <template>
-   <div class="h-full overflow-hidden shadow-menu dark:shadow-none md:dark:border flex flex-col rounded-lg">
+   <div
+      class="h-full overflow-hidden shadow-menu dark:shadow-none md:dark:border flex flex-col rounded-lg"
+   >
       <!-- Card Header with gradient background -->
       <div class="bg-gradient-fresh text-white p-3 flex-shrink-0">
          <div class="flex items-center justify-between text-xs opacity-90">
             <div class="flex items-center gap-1">
-              <h1 class="text-lg font-bold mb-1">{{ data?.RestaurantName }}</h1>
+               <h1 class="text-lg font-bold mb-1">
+                  {{ data?.RestaurantName }}
+               </h1>
             </div>
             <div class="flex items-center gap-1">
                <Clock class="w-3 h-3" />
-               <span class="text-sm pl-1">{{ getDayShortFromDate(todayMenu?.Date) }}</span>
-               <span class="text-sm">{{ lunchTime || '??' }}</span>
+               <span class="text-sm pl-1">{{
+                  getDayShortFromDate(todayMenu?.Date)
+               }}</span>
+               <span class="text-sm">{{ lunchTime || "??" }}</span>
             </div>
          </div>
       </div>
@@ -169,15 +175,26 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
                >
                   <div class="flex-1 min-w-0">
                      <div class="flex items-start justify-between gap-2">
-                        <h4 class="font-semibold text-card-foreground text-xs leading-tight">
-                           {{ menu.Name?.charAt(0).toUpperCase() + menu.Name?.toLowerCase().slice(1) }}
+                        <h4
+                           class="font-semibold text-card-foreground text-xs leading-tight"
+                        >
+                           {{
+                              menu.Name?.charAt(0).toUpperCase() +
+                              menu.Name?.toLowerCase().slice(1)
+                           }}
                         </h4>
                         <span class="text-sm font-bold text-accent shrink-0">
                            {{ `${extractPrice(menu.Price)} €` }}
                         </span>
                      </div>
-                     <p class="text-muted-foreground leading-tight line-clamp-2, text-sm mt-0.5">
-                        {{ menu.Components.map(removeParenthesesContent).join(", ") }}
+                     <p
+                        class="text-muted-foreground leading-tight line-clamp-2, text-sm mt-0.5"
+                     >
+                        {{
+                           menu.Components.map(removeParenthesesContent).join(
+                              ", "
+                           )
+                        }}
                      </p>
                   </div>
                </div>
@@ -185,7 +202,9 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
 
             <!-- Empty state -->
             <div v-if="sortedMenuItems.length === 0" class="text-center py-8">
-               <p class="text-gray-500 dark:text-gray-400">Ei ruokalistaa saatavilla tälle päivälle</p>
+               <p class="text-gray-500 dark:text-gray-400">
+                  Ei ruokalistaa saatavilla tälle päivälle
+               </p>
             </div>
          </div>
       </div>
