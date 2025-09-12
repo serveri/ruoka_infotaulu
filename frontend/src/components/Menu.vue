@@ -105,6 +105,14 @@ function extractPrice(input: string | null) {
       return input.slice(0, -1);
    }
 }
+
+function getDayShortFromDate(dateString: string | null | undefined): string {
+   if (!dateString) return '';
+   
+   const days = ['Su', 'Ma', 'Ti', 'Ke', 'To', 'Pe', 'La'];
+   const date = new Date(dateString);
+   return days[date.getDay()];
+}
 </script>
 
 <template>
@@ -117,6 +125,7 @@ function extractPrice(input: string | null) {
             </div>
             <div class="flex items-center gap-1">
                <Clock class="w-3 h-3" />
+               <span class="text-sm pl-1">{{ getDayShortFromDate(todayMenu?.Date) }}</span>
                <span class="text-sm">{{ lunchTime || 'Lunch hours' }}</span>
             </div>
          </div>
