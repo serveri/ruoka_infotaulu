@@ -67,10 +67,9 @@ app.get('/antell-round', async (req, res) => {
                 RestaurantName: 'Antell Round',
                 RestaurantUrl: 'https://www.antell.fi/round/',
                 PriceHeader: null,
-                Footer: 'Antell Round. Lounas ma-pe kello 10.00-13.30.',
                 MenusForDays: [{
                     Date: new Date().toISOString().split('T')[0],
-                    LunchTime: '10.00-13.30',
+                    LunchTime: '',
                     SetMenus: []
                 }],
                 ErrorText: 'Menu not found'
@@ -116,7 +115,6 @@ app.get('/antell-round', async (req, res) => {
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
-            Footer: 'Antell Round. Lounas ma-pe kello 10.00-13.30. Opiskelijahintainen lounas ainoastaan voimassaolevaa opiskelijakorttia/-sovellusta näyttämällä.',
             MenusForDays: [{
                 Date: today,
                 LunchTime: '10.00-13.30',
@@ -131,10 +129,9 @@ app.get('/antell-round', async (req, res) => {
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
-            Footer: 'Antell Round',
             MenusForDays: [{
                 Date: new Date().toISOString().split('T')[0],
-                LunchTime: '10.00-13.30',
+                LunchTime: '',
             }],
             ErrorText: 'Failed to fetch menu'
         });

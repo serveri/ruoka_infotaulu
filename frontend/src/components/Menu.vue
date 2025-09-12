@@ -13,7 +13,6 @@ interface Menu {
    RestaurantName: string;
    RestaurantUrl: string;
    PriceHeader: null;
-   Footer: string;
    MenusForDays: MenusForDay[];
    ErrorText: null;
 }
@@ -126,7 +125,7 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
             <div class="flex items-center gap-1">
                <Clock class="w-3 h-3" />
                <span class="text-sm pl-1">{{ getDayShortFromDate(todayMenu?.Date) }}</span>
-               <span class="text-sm">{{ lunchTime || 'Lunch hours' }}</span>
+               <span class="text-sm">{{ lunchTime || '??' }}</span>
             </div>
          </div>
       </div>

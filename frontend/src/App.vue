@@ -31,10 +31,10 @@ const today = new Date();
          </p>
       </header>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+         <Menu :url="`${API_URL}/antell-round`" />
          <Menu :url="`${API_URL}/tietoteknia`" />
          <Menu :url="`${API_URL}/snelmannia`" />
          <Menu :url="`${API_URL}/canthia`" />
-         <Menu :url="`${API_URL}/antell-round`" />
       </div>
       <footer
          class="text-primary w-full flex flex-col justify-center items-center p-4"
