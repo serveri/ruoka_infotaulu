@@ -55,14 +55,22 @@ app.use('/canthia', createProxyMiddleware({
 // Antell HTML parsing endpoint
 app.get('/antell-round', async (req, res) => {
     try {
+        console.log('Fetching Antell menu...');
         const response = await axios.get('https://www.antell.fi/round/');
+        console.log('Got response, status:', response.status);
         const dom = new JSDOM(response.data);
         const document = dom.window.document;
 
         // Find the lunch menu section
         const menuSection = document.querySelector('.lunch-menu-days .lunch-menu-language[data-language="fi"]');
+        console.log('Menu section found:', !!menuSection);
         
         if (!menuSection) {
+            console.log('Menu section not found, trying alternative selector');
+            // Try alternative selector
+            const altMenuSection = document.querySelector('.lunch-menu-days');
+            console.log('Alternative menu section found:', !!altMenuSection);
+            
             return res.json({ 
                 RestaurantName: 'Antell Round',
                 RestaurantUrl: 'https://www.antell.fi/round/',
@@ -76,37 +84,51 @@ app.get('/antell-round', async (req, res) => {
             });
         }
 
-        // Extract menu items
+        // Extract menu items - simplified to avoid duplicates
         const setMenus = [];
-        const categories = menuSection.querySelectorAll('.menu-item-category');
+        const allCategories = menuSection.querySelectorAll('.menu-item-category');
+        console.log('Total categories found:', allCategories.length);
         
-        categories.forEach((category, index) => {
-            const categoryName = category.querySelector('strong').textContent.trim();
-            const priceElement = category.querySelector('.price');
-            const price = priceElement ? priceElement.textContent.trim() : '';
-            
-            // Find the description (next li element that's not a category)
-            let nextElement = category.nextElementSibling;
-            let description = '';
-            
-            while (nextElement && !nextElement.classList.contains('menu-item-category')) {
-                if (nextElement.tagName === 'LI') {
-                    description = nextElement.textContent.trim();
-                    break;
+        // Take only first 6 categories to avoid duplicates (typically one day's worth)
+        const categoriesToProcess = Array.from(allCategories).slice(0, 6);
+        console.log('Processing first', categoriesToProcess.length, 'categories');
+        categoriesToProcess.forEach((category, index) => {
+            try {
+                const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
+                const priceElement = category.querySelector('.price');
+                const price = priceElement ? priceElement.textContent.trim() : '';
+                
+                console.log(`Category ${index}: ${categoryName} - ${price}`);
+                
+                // Find the description (next li element that's not a category)
+                let nextElement = category.nextElementSibling;
+                let description = '';
+                
+                while (nextElement && !nextElement.classList.contains('menu-item-category')) {
+                    if (nextElement.tagName === 'LI') {
+                        description = nextElement.textContent.trim();
+                        break;
+                    }
+                    nextElement = nextElement.nextElementSibling;
                 }
-                nextElement = nextElement.nextElementSibling;
+
+                // Clean up description - remove allergen info and extra text
+                const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+
+                if (categoryName) {
+                    setMenus.push({
+                        SortOrder: index + 1,
+                        Name: categoryName,
+                        Price: price,
+                        Components: cleanDescription ? [cleanDescription] : []
+                    });
+                }
+            } catch (itemError) {
+                console.error('Error processing menu item:', itemError);
             }
-
-            // Clean up description - remove allergen info and extra text
-            const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-
-            setMenus.push({
-                SortOrder: index + 1,
-                Name: categoryName,
-                Price: price,
-                Components: cleanDescription ? [cleanDescription] : []
-            });
         });
+        
+        console.log('Total menu items:', setMenus.length);
 
         // Get current date in ISO format
         const today = new Date().toISOString().split('T')[0];
@@ -124,7 +146,8 @@ app.get('/antell-round', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error fetching Antell menu:', error);
+        console.error('Error fetching Antell menu:', error.message);
+        console.error('Full error:', error);
         res.status(200).json({ 
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
