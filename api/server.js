@@ -1,82 +1,98 @@
 import express from 'express';
-import {createProxyMiddleware} from 'http-proxy-middleware';
 import morgan from 'morgan';
 import cors from 'cors';
+import compression from 'compression';
 import axios from 'axios';
 import { JSDOM } from 'jsdom';
-import apicache from 'apicache';
+import { saveMenu, getMenu, getAllMenus, getStats } from './database.js';
 
 const app = express();
-const cache = apicache.middleware;
+
+// Constants
+const MAX_MENU_CATEGORIES = 6;
+const CACHE_MAX_AGE_HOURS = 1;
 
 // CORS configuration
-const corsOptions = {
-    origins: [
+app.use(cors({
+    origin: [
         'https://lunchmenu.s.serveriry.fi',
         'https://lunch.serveriry.fi',
         'http://localhost:5173',
         'http://localhost:4173'
     ],
     credentials: true
-};
+}));
 
-app.use(cors(corsOptions));
-
-// use morgan middleware for logging
+// Middleware
+app.use(compression());
 app.use(morgan('dev'));
 
-const cacheTime = '1 hour'
-app.use(cache(cacheTime));
+// Helper to create a caching endpoint
+const createCachedEndpoint = (path, restaurant, targetUrl) => {
+    app.get(path, async (req, res) => {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const cached = getMenu(restaurant, today);
+        if (cached && !cached.isStale) {
+            return res.json(cached.data);
+        }
+        
+        try {
+            const response = await axios.get(targetUrl);
+            const menuData = response.data;
+            
+            // Only save if there's actual menu data for today
+            const todayMenu = menuData.MenusForDays?.find(day => 
+                day.Date?.startsWith(today) && day.SetMenus?.length > 0
+            );
+            
+            if (todayMenu) {
+                try {
+                    saveMenu(restaurant, today, menuData);
+                } catch (dbError) {
+                    console.error(`Failed to save menu for ${restaurant}:`, dbError.message);
+                }
+            }
+            
+            res.json(menuData);
+        } catch (error) {
+            console.error(`Error fetching ${restaurant}:`, error.message);
+            if (cached) {
+                return res.json(cached.data);
+            }
+            res.status(500).json({ error: 'Failed to fetch menu' });
+        }
+    });
+};
 
-app.use('/tietoteknia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/tietoteknia': ''
-    },
-}));
-
-app.use('/snelmannia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/snelmannia': ''
-    },
-}));
-
-app.use('/canthia', createProxyMiddleware({
-    target: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi',
-    changeOrigin: true,
-    pathRewrite: {
-        '^/canthia': ''
-    },
-}));
+createCachedEndpoint('/tietoteknia', 'tietoteknia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=fi');
+createCachedEndpoint('/snelmannia', 'snelmannia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=fi');
+createCachedEndpoint('/canthia', 'canthia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi');
 
 // Antell HTML parsing endpoint
 app.get('/antell-round', async (req, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Try database cache first
+    const cached = getMenu('antell-round', today);
+    if (cached && !cached.isStale) {
+        return res.json(cached.data);
+    }
+    
     try {
-        console.log('Fetching Antell menu...');
         const response = await axios.get('https://www.antell.fi/round/');
-        console.log('Got response, status:', response.status);
         const dom = new JSDOM(response.data);
         const document = dom.window.document;
 
-        // Find the lunch menu section
         const menuSection = document.querySelector('.lunch-menu-days .lunch-menu-language[data-language="fi"]');
-        console.log('Menu section found:', !!menuSection);
         
         if (!menuSection) {
-            console.log('Menu section not found, trying alternative selector');
-            // Try alternative selector
-            const altMenuSection = document.querySelector('.lunch-menu-days');
-            console.log('Alternative menu section found:', !!altMenuSection);
-            
-            return res.json({ 
+            return res.status(500).json({ 
                 RestaurantName: 'Antell Round',
                 RestaurantUrl: 'https://www.antell.fi/round/',
                 PriceHeader: null,
                 MenusForDays: [{
-                    Date: new Date().toISOString().split('T')[0],
+                    Date: today,
                     LunchTime: '',
                     SetMenus: []
                 }],
@@ -84,23 +100,16 @@ app.get('/antell-round', async (req, res) => {
             });
         }
 
-        // Extract menu items - simplified to avoid duplicates
         const setMenus = [];
         const allCategories = menuSection.querySelectorAll('.menu-item-category');
-        console.log('Total categories found:', allCategories.length);
+        const categoriesToProcess = Array.from(allCategories).slice(0, MAX_MENU_CATEGORIES);
         
-        // Take only first 6 categories to avoid duplicates (typically one day's worth)
-        const categoriesToProcess = Array.from(allCategories).slice(0, 6);
-        console.log('Processing first', categoriesToProcess.length, 'categories');
         categoriesToProcess.forEach((category, index) => {
             try {
                 const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
                 const priceElement = category.querySelector('.price');
                 const price = priceElement ? priceElement.textContent.trim() : '';
                 
-                console.log(`Category ${index}: ${categoryName} - ${price}`);
-                
-                // Find the description (next li element that's not a category)
                 let nextElement = category.nextElementSibling;
                 let description = '';
                 
@@ -112,7 +121,6 @@ app.get('/antell-round', async (req, res) => {
                     nextElement = nextElement.nextElementSibling;
                 }
 
-                // Clean up description - remove allergen info and extra text
                 const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
 
                 if (categoryName) {
@@ -124,16 +132,11 @@ app.get('/antell-round', async (req, res) => {
                     });
                 }
             } catch (itemError) {
-                console.error('Error processing menu item:', itemError);
+                // Skip invalid items
             }
         });
-        
-        console.log('Total menu items:', setMenus.length);
 
-        // Get current date in ISO format
-        const today = new Date().toISOString().split('T')[0];
-
-        res.json({
+        const menuResponse = {
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
@@ -143,22 +146,48 @@ app.get('/antell-round', async (req, res) => {
                 SetMenus: setMenus
             }],
             ErrorText: null
-        });
+        };
+
+        // Only save to database if there are menu items
+        if (setMenus.length > 0) {
+            try {
+                saveMenu('antell-round', today, menuResponse);
+            } catch (dbError) {
+                console.error(`Failed to save Antell menu:`, dbError.message);
+            }
+        }
+
+        res.json(menuResponse);
 
     } catch (error) {
         console.error('Error fetching Antell menu:', error.message);
-        console.error('Full error:', error);
-        res.status(200).json({ 
+        // Try to serve stale cache if available
+        if (cached) {
+            return res.json({ ...cached.data, ErrorText: 'Served from cache (fetch failed)' });
+        }
+        
+        res.status(500).json({ 
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
             MenusForDays: [{
-                Date: new Date().toISOString().split('T')[0],
+                Date: today,
                 LunchTime: '',
             }],
             ErrorText: 'Failed to fetch menu'
         });
     }
+});
+
+// Analytics endpoints
+app.get('/analytics/all', (req, res) => {
+    const menus = getAllMenus();
+    res.json(menus);
+});
+
+app.get('/analytics/stats', (req, res) => {
+    const stats = getStats();
+    res.json(stats);
 });
 
 app.listen(process.env.PORT || 3000);

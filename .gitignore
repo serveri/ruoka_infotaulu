@@ -12,6 +12,7 @@ dist
 dist-ssr
 AntellExample
 *.local
+data
 
 # Editor directories and files
 .vscode/extensions.json

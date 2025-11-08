@@ -21,3 +21,13 @@ Open two terminals:
 ## Notes
 - API proxies Compass Group menus under paths like `/tietoteknia`, `/antell`, `/snelmannia`, `/canthia`.
 - CORS is configured for localhost dev ports.
+
+## Database & Analytics
+- Menus are automatically saved to SQLite database (`api/data/menus.db`) for later analysis
+- Only saves menus when actual lunch items exist
+- Cache expires after 1 hour, then fetches fresh data
+- Database uses ~3-5 MB per year of data
+
+### View stored data:
+- All menus: http://localhost:3000/analytics/all
+- Statistics: http://localhost:3000/analytics/stats
