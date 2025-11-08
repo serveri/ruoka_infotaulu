@@ -7,8 +7,8 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "apicache": "^1.6.3",
     "axios": "^1.11.0",
+    "better-sqlite3": "^11.7.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
