@@ -12,7 +12,9 @@ dist
 dist-ssr
 AntellExample
 *.local
-data
+menus.db
+menus.db-shm
+menus.db-wal
 
 # Editor directories and files
 .vscode/extensions.json
