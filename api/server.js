@@ -166,6 +166,11 @@ app.post('/api/refresh-menus', async (req, res) => {
     }
 });
 
+// Health check endpoint for Coolify
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // Analytics endpoints
 app.get('/analytics/all', (req, res) => {
     const menus = getAllMenus();

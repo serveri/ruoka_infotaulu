@@ -21,6 +21,7 @@ Open two terminals:
 ## Notes
 - API proxies Compass Group menus under paths like `/tietoteknia`, `/antell`, `/snelmannia`, `/canthia`.
 - CORS is configured for localhost dev ports.
+- Health check endpoint: `/health` (For Coolify)
 
 ## Database & Analytics
 - Menus are automatically saved to SQLite database (`api/data/menus.db`) for later analysis
