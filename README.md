@@ -31,3 +31,4 @@ Open two terminals:
 ### View stored data:
 - All menus: http://localhost:3000/analytics/all
 - Statistics: http://localhost:3000/analytics/stats
+- Manual refresh (POST): `curl -X POST http://localhost:3000/api/refresh-menus`
