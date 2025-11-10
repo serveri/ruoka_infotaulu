@@ -218,8 +218,9 @@ app.get('/analytics/debug/counts', (req, res) => {
 // Removed insecure deletion endpoint /analytics/clear/:restaurant
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
     console.log(`Analytics: http://localhost:${PORT}/analytics/all`);
     
     // Auto-fetch all restaurant menus on startup
