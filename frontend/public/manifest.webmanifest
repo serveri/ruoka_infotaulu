@@ -1,0 +1,28 @@
+{
+  "name": "Ruoka infotaulu",
+  "short_name": "Ruoka",
+  "description": "UEF Kuopio Campus Restaurant Menus",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0f19",
+  "theme_color": "#10b981",
+  "categories": ["food", "education"],
+  "lang": "fi",
+  "dir": "ltr",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UEF Kuopio Campus Restaurant Menus</title>
+    <meta name="title" content="UEF Kuopio Campus Restaurant Menus" />
+    <meta name="description" content="Browse today’s UEF Kuopio campus restaurant menus, opening hours, locations, and prices. Fast overview for students and staff." />
+    <meta name="robots" content="index, follow" />
+    <meta name="keywords" content="UEF, Kuopio, Campus, Restaurant, Menus, Food, Lunch, Student, University, Cafeteria, Serveri ry, Tietoteknia lunch, Snelmannia lunch, Canthia lunch, Itä-Suomen Yliopisto, Lunch Kuopio, Savilahti, Student cafeteria, Student lunch" />
+    <link rel="canonical" href="https://lunch.serveriry.fi/en/" />
+    <link rel="alternate" href="https://lunch.serveriry.fi/" hreflang="fi" />
+    <link rel="alternate" href="https://lunch.serveriry.fi/en/" hreflang="en" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:locale:alternate" content="fi_FI" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Lunch" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="UEF Kuopio Campus Restaurant Menus" />
+    <meta property="og:description" content="Browse today’s UEF campus restaurant menus, opening hours, locations, and prices. Fast overview for students and staff." />
+    <meta property="og:url" content="/en/" />
+    <meta property="og:site_name" content="Ruoka infotaulu" />
+    <meta property="og:image" content="/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="UEF Kuopio Campus Restaurant Menus" />
+    <meta name="twitter:description" content="Browse today’s UEF campus restaurant menus, opening hours, locations, and prices. Fast overview for students and staff." />
+    <meta name="twitter:image" content="/og.png" />
+    <meta name="theme-color" content="#10b981" />
+    <meta name="application-name" content="Ruoka infotaulu" />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        const apply = () => {
+          document.documentElement.classList.toggle('dark', media.matches);
+        };
+        apply();
+        media.addEventListener('change', apply);
+      })();
+    </script>
+    <script defer data-domain="lunch.serveriry.fi" src="https://analytics.bittive.com/js/script.outbound-links.js"></script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Ruoka infotaulu",
+      "alternateName": "Lunch",
+      "url": "https://lunch.serveriry.fi/en/",
+      "inLanguage": ["en-GB", "fi-FI"],
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://lunch.serveriry.fi/en/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Serveri ry",
+      "url": "https://serveriry.fi",
+      "sameAs": ["https://lunch.serveriry.fi/en/"],
+      "logo": "https://lunch.serveriry.fi/og.png"
+    }
+    </script>
+  </head>
+  <body class="bg-gradient-subtle min-h-screen">
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
+

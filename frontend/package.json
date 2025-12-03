@@ -12,6 +12,7 @@
    },
    "dependencies": {
       "lucide-vue-next": "^0.543.0",
+      "vite-plugin-pwa": "^1.2.0",
       "vue": "^3.3.4"
    },
    "devDependencies": {

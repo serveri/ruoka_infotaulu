@@ -1,9 +1,60 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import { VitePWA } from "vite-plugin-pwa";
 
 // vite.config.ts
 export default defineConfig({
-   plugins: [vue()],
+   plugins: [
+      vue(),
+      VitePWA({
+         registerType: "autoUpdate",
+         includeAssets: [
+            // keep non-icon assets
+            "og.png",
+            "favicon.svg",
+            "favicon.ico",
+            "apple-touch-icon.png"
+         ],
+         manifest: {
+            name: "Ruoka infotaulu",
+            short_name: "Ruoka",
+            description: "UEF Kuopio Campus Restaurant Menus",
+            start_url: "/",
+            scope: "/",
+            display: "standalone",
+            background_color: "#0b0f19",
+            theme_color: "#10b981",
+            icons: [
+               // Use existing transparent PNGs and provide maskable variants
+               {
+                  src: "/web-app-manifest-192x192.png",
+                  sizes: "192x192",
+                  type: "image/png"
+               },
+               {
+                  src: "/web-app-manifest-512x512.png",
+                  sizes: "512x512",
+                  type: "image/png"
+               },
+               {
+                  src: "/web-app-manifest-192x192.png",
+                  sizes: "192x192",
+                  type: "image/png",
+                  purpose: "maskable any"
+               },
+               {
+                  src: "/web-app-manifest-512x512.png",
+                  sizes: "512x512",
+                  type: "image/png",
+                  purpose: "maskable any"
+               }
+            ]
+         },
+         workbox: {
+            globPatterns: ["**/*.{js,css,html,svg,png,ico,json}"]
+         }
+      })
+   ],
    server: {
       proxy: {
          "/tietoteknia": {
