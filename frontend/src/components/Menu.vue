@@ -92,6 +92,9 @@ onMounted(async () => {
    }
 
    todayMenu.value = menu || null;
+   if (todayMenu.value) {
+      date.value = todayMenu.value.Date;
+   }
    lunchTime.value = todayMenu.value?.LunchTime;
 });
 </script>
@@ -157,7 +160,7 @@ function getDayShortFromDate(dateString: string | null | undefined): string {
             <div class="flex items-center gap-1">
                <Clock class="w-3 h-3" />
                <span class="text-sm pl-1">{{
-                  getDayShortFromDate(todayMenu?.Date)
+                  getDayShortFromDate(date)
                }}</span>
                <span class="text-sm">{{ lunchTime || "??" }}</span>
             </div>

@@ -72,51 +72,134 @@ async function scrapeAntellMenu(today) {
         throw new Error('No menu section found');
     }
 
-    const setMenus = [];
-    const allCategories = menuSection.querySelectorAll('.menu-item-category');
-    const categoriesToProcess = Array.from(allCategories).slice(0, MAX_MENU_CATEGORIES);
+    const menusForDays = [];
+    const dateHeaders = menuSection.querySelectorAll('h3');
 
-    categoriesToProcess.forEach((category, index) => {
-        try {
-            const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
-            const priceElement = category.querySelector('.price');
-            const price = priceElement ? priceElement.textContent.trim() : '';
+    // Helper to parse Finnish date "Maanantai 15.9."
+    const parseFinnishDate = (dateStr) => {
+        const matches = dateStr.match(/(\d+)\.(\d+)\./);
+        if (!matches) return null;
+        
+        const day = parseInt(matches[1], 10);
+        const month = parseInt(matches[2], 10);
+        
+        const now = new Date();
+        let year = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        
+        // Handle year rollover
+        if (currentMonth === 12 && month === 1) year++;
+        else if (currentMonth === 1 && month === 12) year--;
+        
+        const mm = month.toString().padStart(2, '0');
+        const dd = day.toString().padStart(2, '0');
+        return `${year}-${mm}-${dd}`;
+    };
 
-            let nextElement = category.nextElementSibling;
-            let description = '';
+    if (dateHeaders.length > 0) {
+        // New logic: Parse multiple days
+        dateHeaders.forEach(h3 => {
+            const dateStr = h3.textContent.trim();
+            const parsedDate = parseFinnishDate(dateStr);
+            if (!parsedDate) return;
 
-            while (nextElement && !nextElement.classList.contains('menu-item-category')) {
-                if (nextElement.tagName === 'LI') {
-                    description = nextElement.textContent.trim();
-                    break;
+            const dayContainer = h3.parentElement; // The div containing the list
+            const setMenus = [];
+            const categories = dayContainer.querySelectorAll('.menu-item-category');
+
+            categories.forEach((category, index) => {
+                if (index >= MAX_MENU_CATEGORIES) return;
+
+                try {
+                    const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
+                    const priceElement = category.querySelector('.price');
+                    const price = priceElement ? priceElement.textContent.trim() : '';
+
+                    let nextElement = category.nextElementSibling;
+                    let description = '';
+
+                    while (nextElement && !nextElement.classList.contains('menu-item-category')) {
+                        if (nextElement.tagName === 'LI') {
+                            description = nextElement.textContent.trim();
+                            break;
+                        }
+                        nextElement = nextElement.nextElementSibling;
+                    }
+
+                    const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+
+                    if (categoryName) {
+                        setMenus.push({
+                            SortOrder: index + 1,
+                            Name: categoryName,
+                            Price: price,
+                            Components: cleanDescription ? [cleanDescription] : []
+                        });
+                    }
+                } catch (itemError) {
+                    // Skip invalid items
                 }
-                nextElement = nextElement.nextElementSibling;
-            }
+            });
 
-            const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-
-            if (categoryName) {
-                setMenus.push({
-                    SortOrder: index + 1,
-                    Name: categoryName,
-                    Price: price,
-                    Components: cleanDescription ? [cleanDescription] : []
+            if (setMenus.length > 0) {
+                menusForDays.push({
+                    Date: parsedDate,
+                    LunchTime: '10.00-13.30',
+                    SetMenus: setMenus
                 });
             }
-        } catch (itemError) {
-            // Skip invalid items
-        }
-    });
+        });
+    }
+
+    // Fallback: If no headers found (structure changed), try old logic but limit to current day
+    if (menusForDays.length === 0) {
+         const setMenus = [];
+         const allCategories = menuSection.querySelectorAll('.menu-item-category');
+         const categoriesToProcess = Array.from(allCategories).slice(0, MAX_MENU_CATEGORIES);
+         
+         categoriesToProcess.forEach((category, index) => {
+             // ... duplicate logic or simple fallback ...
+             // For brevity, let's assume if h3 parsing failed, we might just fail or return empty.
+             // But to be safe, let's include the old logic as a fallback block.
+             try {
+                const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
+                const priceElement = category.querySelector('.price');
+                const price = priceElement ? priceElement.textContent.trim() : '';
+                let nextElement = category.nextElementSibling;
+                let description = '';
+                while (nextElement && !nextElement.classList.contains('menu-item-category')) {
+                    if (nextElement.tagName === 'LI') {
+                        description = nextElement.textContent.trim();
+                        break;
+                    }
+                    nextElement = nextElement.nextElementSibling;
+                }
+                const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
+                if (categoryName) {
+                    setMenus.push({
+                        SortOrder: index + 1,
+                        Name: categoryName,
+                        Price: price,
+                        Components: cleanDescription ? [cleanDescription] : []
+                    });
+                }
+             } catch (e) {}
+         });
+         
+         if (setMenus.length > 0) {
+             menusForDays.push({
+                 Date: today, // Fallback to provided today
+                 LunchTime: '10.00-13.30',
+                 SetMenus: setMenus
+             });
+         }
+    }
 
     return {
         RestaurantName: 'Antell Round',
         RestaurantUrl: 'https://www.antell.fi/round/',
         PriceHeader: null,
-        MenusForDays: [{
-            Date: today,
-            LunchTime: '10.00-13.30',
-            SetMenus: setMenus
-        }],
+        MenusForDays: menusForDays,
         ErrorText: null
     };
 }
@@ -128,8 +211,8 @@ app.get('/antell-round', async (req, res) => {
     try {
         const menuResponse = await scrapeAntellMenu(today);
 
-        // Save to database if there are menu items (Antell currently scrapes today only)
-        if (menuResponse.MenusForDays[0].SetMenus.length > 0) {
+        // Save to database if there are menu items
+        if (menuResponse.MenusForDays.length > 0) {
             try {
                 saveMenu('antell-round', today, menuResponse);
             } catch (dbError) {
