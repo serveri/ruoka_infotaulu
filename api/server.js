@@ -37,6 +37,11 @@ const createCachedEndpoint = (path, restaurant, targetUrl) => {
             const response = await axios.get(targetUrl);
             const menuData = response.data;
             
+            // Fix restaurant names (remove "Itä-Suomen yliopisto/" prefix)
+            if (menuData.RestaurantName && menuData.RestaurantName.includes('Itä-Suomen yliopisto/')) {
+                menuData.RestaurantName = menuData.RestaurantName.replace('Itä-Suomen yliopisto/', '');
+            }
+
             // Save only today's menu to DB to avoid future-day changes
             const todayMenu = menuData.MenusForDays?.find(day => 
                 day.Date?.startsWith(today) && day.SetMenus?.length > 0
@@ -259,6 +264,11 @@ async function fetchAllRestaurants() {
             console.log(`  Fetching ${restaurant.name}...`);
             const response = await axios.get(restaurant.url);
             const menuData = response.data;
+            
+            // Fix restaurant names (remove "Itä-Suomen yliopisto/" prefix)
+            if (menuData.RestaurantName && menuData.RestaurantName.includes('Itä-Suomen yliopisto/')) {
+                menuData.RestaurantName = menuData.RestaurantName.replace('Itä-Suomen yliopisto/', '');
+            }
             
             const todayMenu = menuData.MenusForDays?.find(day => 
                 day.Date?.startsWith(today) && day.SetMenus?.length > 0
