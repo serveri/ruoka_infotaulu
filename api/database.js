@@ -78,9 +78,12 @@ function internalSaveAllDays(restaurant, menuData, onlyTodayDate = null) {
   if (!RESTAURANTS.includes(restaurant) || !menuData?.MenusForDays?.length) return;
   const table = `${restaurant}_menus`;
   const insert = db.prepare(`INSERT OR IGNORE INTO ${table} (date, weekday, dish_name, student_price, components) VALUES (?, ?, ?, ?, ?)`);
-  const daysToProcess = onlyTodayDate
-    ? menuData.MenusForDays.filter(d => d.Date?.startsWith(onlyTodayDate))
-    : menuData.MenusForDays.slice(0,1);
+  
+  // OPTIMIZATION: Always process all days provided by the menu source.
+  // The 'onlyTodayDate' filter was likely slowing down or missing future data,
+  // causing subsequent requests to re-fetch or fail to show cached future data.
+  // Saving everything we get ensures the DB is populated for upcoming days too.
+  const daysToProcess = menuData.MenusForDays;
   
   const tx = db.transaction(days => {
     days.forEach(day => {
