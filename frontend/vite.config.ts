@@ -16,8 +16,8 @@ export default defineConfig({
             "apple-touch-icon.png"
          ],
          manifest: {
-            name: "Ruoka infotaulu",
-            short_name: "Ruoka",
+            name: "UEF Kuopio Lunch",
+            short_name: "UEF Lunch",
             description: "UEF Kuopio Campus Restaurant Menus",
             start_url: "/",
             scope: "/",

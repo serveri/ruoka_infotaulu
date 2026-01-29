@@ -31,7 +31,7 @@ app.use(morgan('dev'));
 // Helper to create endpoint for Compass Group restaurants
 const createCachedEndpoint = (path, restaurant, targetUrl) => {
     app.get(path, async (req, res) => {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
         
         try {
             // OPTIMIZATION: Check DB first for today's menu
@@ -59,8 +59,33 @@ const createCachedEndpoint = (path, restaurant, targetUrl) => {
             const menuData = response.data;
             
             // Fix restaurant names (remove "Itä-Suomen yliopisto/" prefix)
-            if (menuData.RestaurantName && menuData.RestaurantName.includes('Itä-Suomen yliopisto/')) {
-                menuData.RestaurantName = menuData.RestaurantName.replace('Itä-Suomen yliopisto/', '');
+            // Note: This prefix only appears in the English "University of Eastern Finland/" menus often
+            if (menuData.RestaurantName) {
+                menuData.RestaurantName = menuData.RestaurantName
+                    .replace('Itä-Suomen yliopisto/', '')
+                    .replace('University of Eastern Finland/', '');
+            }
+
+            // CLEAN PRICES logic
+            // Compass group returns "Student 2,95 € / Staff 6,19 € / Guest 6,22 €"
+            // We want just "2,95 €" or "2,95" (formatted by frontend)
+            // Or if multiple prices, maybe keep them but usually we want Student price.
+            if (menuData.MenusForDays) {
+                menuData.MenusForDays.forEach(day => {
+                    if (day.SetMenus) {
+                        day.SetMenus.forEach(menu => {
+                            if (menu.Price) {
+                                // Regex to find "Student X,XX €" or "Opiskelija X,XX €"
+                                // Matches: "Student 2,95" or "Student 2,95 €"
+                                // Compass often sends "Student 2,95 € / Staff..."
+                                const studentMatch = menu.Price.match(/(?:Student|Opiskelija)\s*(\d+[,.]\d+)/i);
+                                if (studentMatch) {
+                                    menu.Price = studentMatch[1] + ' €'; // "2,95 €"
+                                }
+                            }
+                        });
+                    }
+                });
             }
 
             // Save ALL days to DB, not just today. 
@@ -85,22 +110,31 @@ createCachedEndpoint('/tietoteknia', 'tietoteknia', 'https://www.compass-group.f
 createCachedEndpoint('/snelmannia', 'snelmannia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=fi');
 createCachedEndpoint('/canthia', 'canthia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi');
 
-// Helper function to scrape Antell Round menu
-async function scrapeAntellMenu(today) {
-    const response = await axios.get('https://www.antell.fi/round/');
+// English Endpoints
+createCachedEndpoint('/tietoteknia/en', 'tietoteknia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0439&language=en');
+createCachedEndpoint('/snelmannia/en', 'snelmannia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0437&language=en');
+createCachedEndpoint('/canthia/en', 'canthia', 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=en');
+
+// Helper function to scrape Antell Round menu (Finnish or English)
+async function scrapeAntellMenu(today, language = 'fi') {
+    const url = language === 'en' ? 'https://www.antell.fi/round/en/' : 'https://www.antell.fi/round/';
+    const response = await axios.get(url);
     const dom = new JSDOM(response.data);
     const document = dom.window.document;
 
-    const menuSection = document.querySelector('.lunch-menu-days .lunch-menu-language[data-language="fi"]');
+    const selector = `.lunch-menu-days .lunch-menu-language[data-language="${language}"]`;
+    const menuSection = document.querySelector(selector);
+    
     if (!menuSection) {
-        throw new Error('No menu section found');
+        throw new Error(`No menu section found for language: ${language}`);
     }
 
     const menusForDays = [];
     const dateHeaders = menuSection.querySelectorAll('h3');
 
-    // Helper to parse Finnish date "Maanantai 15.9."
-    const parseFinnishDate = (dateStr) => {
+    // Helper to parse Finnish/English date "Maanantai 15.9." or "Monday 15.9."
+    const parseDate = (dateStr) => {
+        // Matches "Word 15.9."
         const matches = dateStr.match(/(\d+)\.(\d+)\./);
         if (!matches) return null;
         
@@ -124,104 +158,81 @@ async function scrapeAntellMenu(today) {
         // New logic: Parse multiple days
         dateHeaders.forEach(h3 => {
             const dateStr = h3.textContent.trim();
-            const parsedDate = parseFinnishDate(dateStr);
+            const parsedDate = parseDate(dateStr);
             if (!parsedDate) return;
 
-            const dayContainer = h3.parentElement; // The div containing the list
-            const setMenus = [];
-            const categories = dayContainer.querySelectorAll('.menu-item-category');
+            // Note: In provided HTML structure which we know:
+            // The UL is a sibling of H3.
+            let nextElement = h3.nextElementSibling;
+            if (nextElement && nextElement.tagName === 'UL') {
+                const dayContainer = nextElement; // This is the UL
+                const setMenus = [];
+                const categories = dayContainer.querySelectorAll('.menu-item-category');
 
-            categories.forEach((category, index) => {
-                if (index >= MAX_MENU_CATEGORIES) return;
+                categories.forEach((category, index) => {
+                    if (index >= MAX_MENU_CATEGORIES) return;
 
-                try {
-                    const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
-                    const priceElement = category.querySelector('.price');
-                    const price = priceElement ? priceElement.textContent.trim() : '';
+                    try {
+                        const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
+                        const priceElement = category.querySelector('.price');
+                        const price = priceElement ? priceElement.textContent.trim() : '';
 
-                    let nextElement = category.nextElementSibling;
-                    let description = '';
+                        let nextLi = category.nextElementSibling;
+                        let description = '';
 
-                    while (nextElement && !nextElement.classList.contains('menu-item-category')) {
-                        if (nextElement.tagName === 'LI') {
-                            description = nextElement.textContent.trim();
-                            break;
+                        // Combine descriptions from following LIs until next category
+                        while (nextLi && !nextLi.classList.contains('menu-item-category')) {
+                            if (nextLi.tagName === 'LI') {
+                                // Sometimes textContent includes children. If there's a strong tag at the end (for # or allergens), we want that text too.
+                                // The issue "missing last char" is weird.
+                                // Let's simplify: just get textContent.
+                                let text = nextLi.textContent.replace(/\n/g, ' ').trim();
+                                if (text.endsWith('#')) {
+                                    text = text.slice(0, -1).trim();
+                                }
+                                description += (description ? ' ' : '') + text;
+                            }
+                            nextLi = nextLi.nextElementSibling;
                         }
-                        nextElement = nextElement.nextElementSibling;
+
+                        // Clean up allergens and # markers
+                        // CAUTION: The missing char issue might be because textContent includes hidden chars or the # removal was somehow affecting it if no # was present? 
+                        // No, replace(/#/g, '') shouldn't remove chars if # isn't there.
+                        // However, let's loosen the allergen regex and ensure we don't accidentally slice.
+                        
+                        const cleanDescription = description
+                            .replace(/\([^)]*\)/g, '') // Remove (A), (L, G) etc
+                            .replace(/#/g, '')         // Remove # if any remain
+                            .replace(/\s+/g, ' ')      // Whitespace
+                            .trim();
+
+                        if (categoryName) {
+                            setMenus.push({
+                                SortOrder: index + 1,
+                                Name: categoryName,
+                                Price: price,
+                                Components: cleanDescription ? [cleanDescription] : []
+                            });
+                        }
+                    } catch (itemError) {
+                       // Skip
                     }
-
-                    const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-
-                    if (categoryName) {
-                        setMenus.push({
-                            SortOrder: index + 1,
-                            Name: categoryName,
-                            Price: price,
-                            Components: cleanDescription ? [cleanDescription] : []
-                        });
-                    }
-                } catch (itemError) {
-                    // Skip invalid items
-                }
-            });
-
-            if (setMenus.length > 0) {
-                menusForDays.push({
-                    Date: parsedDate,
-                    LunchTime: '10.00-13.30',
-                    SetMenus: setMenus
                 });
+
+                if (setMenus.length > 0) {
+                    menusForDays.push({
+                        Date: parsedDate,
+                        LunchTime: '10.00-13.30',
+                        SetMenus: setMenus
+                    });
+                }
             }
         });
     }
 
-    // Fallback: If no headers found (structure changed), try old logic but limit to current day
-    if (menusForDays.length === 0) {
-         const setMenus = [];
-         const allCategories = menuSection.querySelectorAll('.menu-item-category');
-         const categoriesToProcess = Array.from(allCategories).slice(0, MAX_MENU_CATEGORIES);
-         
-         categoriesToProcess.forEach((category, index) => {
-             // ... duplicate logic or simple fallback ...
-             // For brevity, let's assume if h3 parsing failed, we might just fail or return empty.
-             // But to be safe, let's include the old logic as a fallback block.
-             try {
-                const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
-                const priceElement = category.querySelector('.price');
-                const price = priceElement ? priceElement.textContent.trim() : '';
-                let nextElement = category.nextElementSibling;
-                let description = '';
-                while (nextElement && !nextElement.classList.contains('menu-item-category')) {
-                    if (nextElement.tagName === 'LI') {
-                        description = nextElement.textContent.trim();
-                        break;
-                    }
-                    nextElement = nextElement.nextElementSibling;
-                }
-                const cleanDescription = description.replace(/\([^)]*\)/g, '').replace(/\s+/g, ' ').trim();
-                if (categoryName) {
-                    setMenus.push({
-                        SortOrder: index + 1,
-                        Name: categoryName,
-                        Price: price,
-                        Components: cleanDescription ? [cleanDescription] : []
-                    });
-                }
-             } catch (e) {}
-         });
-         
-         if (setMenus.length > 0) {
-             menusForDays.push({
-                 Date: today, // Fallback to provided today
-                 LunchTime: '10.00-13.30',
-                 SetMenus: setMenus
-             });
-         }
-    }
-
     return {
         RestaurantName: 'Antell Round',
-        RestaurantUrl: 'https://www.antell.fi/round/',
+        RestaurantUrl: url,
         PriceHeader: null,
         MenusForDays: menusForDays,
         ErrorText: null
@@ -230,10 +241,10 @@ async function scrapeAntellMenu(today) {
 
 // Antell HTML parsing endpoint
 app.get('/antell-round', async (req, res) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
     
     try {
-        const menuResponse = await scrapeAntellMenu(today);
+        const menuResponse = await scrapeAntellMenu(today, 'fi');
 
         // Save ALL parsed menus to database
         if (menuResponse.MenusForDays.length > 0) {
@@ -260,6 +271,20 @@ app.get('/antell-round', async (req, res) => {
             }],
             ErrorText: 'Failed to fetch menu'
         });
+    }
+});
+
+// Antell English Endpoint
+app.get('/antell-round/en', async (req, res) => {
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
+    
+    try {
+        const menuResponse = await scrapeAntellMenu(today, 'en');
+        res.set('Cache-Control', `public, max-age=${CACHE_MAX_AGE_HOURS * 3600}`);
+        res.json(menuResponse);
+    } catch (error) {
+        console.error('Error fetching Antell EN menu:', error.message);
+        res.status(500).json({ error: 'Failed to fetch English menu' });
     }
 });
 
@@ -361,7 +386,7 @@ async function fetchAllRestaurants() {
         { name: 'canthia', url: 'https://www.compass-group.fi/menuapi/feed/json?costNumber=0436&language=fi' }
     ];
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
     
     for (const restaurant of restaurants) {
         try {
@@ -391,9 +416,10 @@ async function fetchAllRestaurants() {
     // Fetch Antell Round separately (requires scraping)
     try {
         console.log(`  Fetching antell-round...`);
-        const menuResponse = await scrapeAntellMenu(today);
+        // We only save the Finnish version in the background job for now
+        const menuResponse = await scrapeAntellMenu(today, 'fi');
         
-        if (menuResponse.MenusForDays[0].SetMenus.length > 0) {
+        if (menuResponse.MenusForDays && menuResponse.MenusForDays.length > 0) {
             saveMenu('antell-round', today, menuResponse);
             console.log(`  ✅ antell-round saved`);
         } else {
