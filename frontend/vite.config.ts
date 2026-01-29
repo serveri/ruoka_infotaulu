@@ -4,6 +4,14 @@ import { VitePWA } from "vite-plugin-pwa";
 
 // vite.config.ts
 export default defineConfig({
+   build: {
+      rollupOptions: {
+         input: {
+            main: "index.html",
+            en: "en/index.html",
+         },
+      },
+   },
    plugins: [
       vue(),
       VitePWA({
