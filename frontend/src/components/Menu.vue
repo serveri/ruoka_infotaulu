@@ -42,6 +42,10 @@ const props = defineProps({
     type: String,
     default: "fi",
   },
+  name: {
+    type: String,
+    default: "",
+  },
 });
 
 // --- State ---
@@ -180,7 +184,11 @@ async function fetchData() {
 
   } catch (err) {
     console.error(`Failed to load menu from ${props.url}`, err);
-    error.value = "Menu unavailable";
+    error.value = props.lang === 'en' ? "No menu available for today" : "Ei ruokalistaa saatavilla tälle päivälle";
+    // If date is not set (e.g. fetch failed), default to today so the weekday shows up
+    if (!displayDate.value) {
+      displayDate.value = new Date().toISOString().slice(0, 10);
+    }
   } finally {
     isLoading.value = false;
   }
@@ -201,7 +209,7 @@ onMounted(() => {
       <div class="flex items-center justify-between text-xs opacity-90">
         <div class="flex items-center gap-1">
           <h1 class="text-lg font-bold mb-1">
-            {{ data?.RestaurantName || "Loading..." }}
+            {{ name || data?.RestaurantName || "Loading..." }}
           </h1>
         </div>
         <div class="flex items-center gap-1">
@@ -217,7 +225,7 @@ onMounted(() => {
 
     <!-- Card Content -->
     <div class="p-3 bg-card dark:bg-transparent flex-1 overflow-hidden relative">
-      <div v-if="error" class="flex items-center justify-center h-full text-red-500">
+      <div v-if="error" class="text-center py-8 text-gray-500 dark:text-gray-400">
          <p>{{ error }}</p>
       </div>
 
@@ -243,7 +251,7 @@ onMounted(() => {
         <!-- Empty state -->
         <div v-if="!isLoading && processedMenuItems.length === 0" class="text-center py-8">
           <p class="text-gray-500 dark:text-gray-400">
-            Ei ruokalistaa saatavilla tälle päivälle
+            {{ lang === 'en' ? 'No menu available for today' : 'Ei ruokalistaa saatavilla tälle päivälle' }}
           </p>
         </div>
       </div>

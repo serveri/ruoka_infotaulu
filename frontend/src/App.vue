@@ -66,10 +66,10 @@ const getUrl = (restaurant: string) => {
          </p>
       </header>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-         <Menu :key="currentLang + 'antell'" :url="getUrl('antell-round')" :lang="currentLang" />
-         <Menu :key="currentLang + 'tietotek'" :url="getUrl('tietoteknia')" :lang="currentLang" />
-         <Menu :key="currentLang + 'snell'" :url="getUrl('snelmannia')" :lang="currentLang" />
-         <Menu :key="currentLang + 'canthia'" :url="getUrl('canthia')" :lang="currentLang" />
+         <Menu :key="currentLang + 'antell'" :url="getUrl('antell-round')" :lang="currentLang" name="Antell Round" />
+         <Menu :key="currentLang + 'tietotek'" :url="getUrl('tietoteknia')" :lang="currentLang" name="Tietoteknia" />
+         <Menu :key="currentLang + 'snell'" :url="getUrl('snelmannia')" :lang="currentLang" name="Snellmania" />
+         <Menu :key="currentLang + 'canthia'" :url="getUrl('canthia')" :lang="currentLang" name="Canthia" />
       </div>
       
       <footer
