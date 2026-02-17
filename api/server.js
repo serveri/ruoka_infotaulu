@@ -117,126 +117,128 @@ createCachedEndpoint('/canthia/en', 'canthia', 'https://www.compass-group.fi/men
 
 // Helper function to scrape Antell Round menu (Finnish or English)
 async function scrapeAntellMenu(today, language = 'fi') {
-    const url = language === 'en' ? 'https://www.antell.fi/round/en/' : 'https://www.antell.fi/round/';
-    const response = await axios.get(url);
-    const dom = new JSDOM(response.data);
-    const document = dom.window.document;
-
-    const selector = `.lunch-menu-days .lunch-menu-language[data-language="${language}"]`;
-    const menuSection = document.querySelector(selector);
+    // New URL structure
+    const url = language === 'en' 
+        ? 'https://antell.fi/en/lunch/kuopio/round/' 
+        : 'https://antell.fi/lounas/kuopio/round/';
     
-    if (!menuSection) {
-        throw new Error(`No menu section found for language: ${language}`);
-    }
+    try {
+        const response = await axios.get(url);
+        const dom = new JSDOM(response.data);
+        const document = dom.window.document;
 
-    const menusForDays = [];
-    const dateHeaders = menuSection.querySelectorAll('h3');
-
-    // Helper to parse Finnish/English date "Maanantai 15.9." or "Monday 15.9."
-    const parseDate = (dateStr) => {
-        // Matches "Word 15.9."
-        const matches = dateStr.match(/(\d+)\.(\d+)\./);
-        if (!matches) return null;
+        const menusForDays = [];
+        const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         
-        const day = parseInt(matches[1], 10);
-        const month = parseInt(matches[2], 10);
-        
-        const now = new Date();
-        let year = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        
-        // Handle year rollover
-        if (currentMonth === 12 && month === 1) year++;
-        else if (currentMonth === 1 && month === 12) year--;
-        
-        const mm = month.toString().padStart(2, '0');
-        const dd = day.toString().padStart(2, '0');
-        return `${year}-${mm}-${dd}`;
-    };
+        // Helper to get dates for the current week Monday-Friday
+        const getCurrentWeekDate = (dayIndex) => {
+            const d = new Date();
+            const day = d.getDay(); // 0 (Sun) to 6 (Sat)
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+            const monday = new Date(d.setDate(diff));
+            
+            const targetDate = new Date(monday);
+            targetDate.setDate(monday.getDate() + dayIndex);
+            
+            const year = targetDate.getFullYear();
+            const month = (targetDate.getMonth() + 1).toString().padStart(2, '0');
+            const dd = targetDate.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${dd}`;
+        };
 
-    if (dateHeaders.length > 0) {
-        // New logic: Parse multiple days
-        dateHeaders.forEach(h3 => {
-            const dateStr = h3.textContent.trim();
-            const parsedDate = parseDate(dateStr);
-            if (!parsedDate) return;
+        days.forEach((dayName, dayIndex) => {
+            const panelId = `#panel-${dayName}`;
+            const panel = document.querySelector(panelId);
 
-            // Note: In provided HTML structure which we know:
-            // The UL is a sibling of H3.
-            let nextElement = h3.nextElementSibling;
-            if (nextElement && nextElement.tagName === 'UL') {
-                const dayContainer = nextElement; // This is the UL
-                const setMenus = [];
-                const categories = dayContainer.querySelectorAll('.menu-item-category');
+            if (!panel) return;
 
-                categories.forEach((category, index) => {
-                    if (index >= MAX_MENU_CATEGORIES) return;
+            // Structure:
+            // <section id="panel-Monday">
+            //   <div class="tabpanel__specials">
+            //     <ul>
+            //       <li> (Category)
+            //         <div class="option-title"><h5>Category Name</h5> <h5 class="option-price">Price</h5></div>
+            //         <ul class="accordion__list">
+            //           <li> (Dish)
+            //             <div class="accordion">
+            //               <button class="accordion__button">Dish Name</button>
+            //               ... <div class="accordion__footer__special-diets"><p>Diets</p></div>
+            //             </div>
+            //           </li>
+            //         </ul>
+            //       </li>
+            //     </ul>
+            //   </div>
+            // </section>
 
-                    try {
-                        const categoryName = category.querySelector('strong')?.textContent?.trim() || '';
-                        const priceElement = category.querySelector('.price');
-                        const price = priceElement ? priceElement.textContent.trim() : '';
+            // Select all direct LI children of the UL inside .tabpanel__specials
+            // Note: The structure might vary slightly, but generally .tabpanel__specials > ul > li seems correct for categories
+            const categoryItems = panel.querySelectorAll('.tabpanel__specials > ul > li');
+            const setMenus = [];
 
-                        let nextLi = category.nextElementSibling;
-                        let description = '';
+            categoryItems.forEach((catItem, catOrder) => {
+                // Category Name
+                const titleEl = catItem.querySelector('.option-title h5');
+                const priceEl = catItem.querySelector('.option-price');
+                
+                let categoryName = titleEl ? titleEl.textContent.trim() : '';
+                let priceRaw = priceEl ? priceEl.textContent.trim() : '';
+                
+                // Clean price: "12,50/3,10 €" -> "2,95 €" logic? 
+                // Usually take the student price if available or just keep as is.
+                // Compass logic was taking "Student X €". Here we have "12,50/3,10 €".
+                // 12.50 is normal, 3.10 is Kela/student.
+                let price = priceRaw;
 
-                        // Combine descriptions from following LIs until next category
-                        while (nextLi && !nextLi.classList.contains('menu-item-category')) {
-                            if (nextLi.tagName === 'LI') {
-                                // Sometimes textContent includes children. If there's a strong tag at the end (for # or allergens), we want that text too.
-                                // The issue "missing last char" is weird.
-                                // Let's simplify: just get textContent.
-                                let text = nextLi.textContent.replace(/\n/g, ' ').trim();
-                                if (text.endsWith('#')) {
-                                    text = text.slice(0, -1).trim();
-                                }
-                                description += (description ? ' ' : '') + text;
-                            }
-                            nextLi = nextLi.nextElementSibling;
-                        }
+                // Dishes are inside .accordion__list > li
+                const dishItems = catItem.querySelectorAll('.accordion__list > li');
+                const components = [];
 
-                        // Clean up allergens and # markers
-                        // CAUTION: The missing char issue might be because textContent includes hidden chars or the # removal was somehow affecting it if no # was present? 
-                        // No, replace(/#/g, '') shouldn't remove chars if # isn't there.
-                        // However, let's loosen the allergen regex and ensure we don't accidentally slice.
+                dishItems.forEach(dishItem => {
+                    const button = dishItem.querySelector('.accordion__button');
+                    const dietP = dishItem.querySelector('.accordion__footer__special-diets p');
+                    
+                    if (button) {
+                        let dishName = button.textContent.replace(/\s+/g, ' ').trim();
+                        let diets = dietP ? dietP.textContent.trim() : '';
                         
-                        const cleanDescription = description
-                            .replace(/\([^)]*\)/g, '') // Remove (A), (L, G) etc
-                            .replace(/#/g, '')         // Remove # if any remain
-                            .replace(/\s+/g, ' ')      // Whitespace
-                            .trim();
-
-                        if (categoryName) {
-                            setMenus.push({
-                                SortOrder: index + 1,
-                                Name: categoryName,
-                                Price: price,
-                                Components: cleanDescription ? [cleanDescription] : []
-                            });
-                        }
-                    } catch (itemError) {
-                       // Skip
+                        // Combine Name + Diets
+                        const fullDish = diets ? `${dishName} (${diets})` : dishName;
+                        components.push(fullDish);
                     }
                 });
 
-                if (setMenus.length > 0) {
-                    menusForDays.push({
-                        Date: parsedDate,
-                        LunchTime: '10.00-13.30',
-                        SetMenus: setMenus
+                if (components.length > 0) {
+                    setMenus.push({
+                        SortOrder: catOrder + 1,
+                        Name: categoryName || `Menu ${catOrder + 1}`,
+                        Price: price,
+                        Components: components
                     });
                 }
+            });
+
+            if (setMenus.length > 0) {
+                menusForDays.push({
+                    Date: getCurrentWeekDate(dayIndex),
+                    LunchTime: '10.00-13.30', // Hardcoded or scraped if available
+                    SetMenus: setMenus
+                });
             }
         });
-    }
 
-    return {
-        RestaurantName: 'Antell Round',
-        RestaurantUrl: url,
-        PriceHeader: null,
-        MenusForDays: menusForDays,
-        ErrorText: null
-    };
+        return {
+            RestaurantName: 'Antell Round',
+            RestaurantUrl: url,
+            PriceHeader: null,
+            MenusForDays: menusForDays,
+            ErrorText: null
+        };
+
+    } catch (e) {
+        console.error('Antell scraper error:', e);
+        throw e;
+    }
 }
 
 // Antell HTML parsing endpoint
