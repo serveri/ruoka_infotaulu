@@ -12,6 +12,56 @@ const app = express();
 // Constants
 const MAX_MENU_CATEGORIES = 6;
 const CACHE_MAX_AGE_HOURS = 1;
+const CACHE_TTL_MS = CACHE_MAX_AGE_HOURS * 60 * 60 * 1000;
+const CACHE_SWR_SECONDS = 10 * 60;
+const CACHE_MAX_STALE_MS = 6 * 60 * 60 * 1000;
+
+// In-memory cache for single-instance deployments
+const memoryCache = new Map();
+const inFlightFetches = new Map();
+
+function setCacheHeaders(res, cacheStatus) {
+    res.set('Cache-Control', `public, max-age=${CACHE_MAX_AGE_HOURS * 3600}, stale-while-revalidate=${CACHE_SWR_SECONDS}`);
+    res.set('X-Cache', cacheStatus);
+}
+
+async function fetchAndCache(cacheKey, fetcher) {
+    if (inFlightFetches.has(cacheKey)) return inFlightFetches.get(cacheKey);
+
+    const promise = (async () => {
+        const data = await fetcher();
+        memoryCache.set(cacheKey, { data, fetchedAt: Date.now() });
+        return data;
+    })();
+
+    inFlightFetches.set(cacheKey, promise);
+    try {
+        return await promise;
+    } finally {
+        inFlightFetches.delete(cacheKey);
+    }
+}
+
+async function getCachedResponse(cacheKey, fetcher) {
+    const now = Date.now();
+    const cached = memoryCache.get(cacheKey);
+
+    if (cached && (now - cached.fetchedAt) < CACHE_TTL_MS) {
+        return { data: cached.data, cacheStatus: 'HIT' };
+    }
+
+    if (cached && (now - cached.fetchedAt) < CACHE_MAX_STALE_MS) {
+        if (!inFlightFetches.has(cacheKey)) {
+            void fetchAndCache(cacheKey, fetcher).catch(err => {
+                console.error(`Cache refresh failed for ${cacheKey}:`, err.message);
+            });
+        }
+        return { data: cached.data, cacheStatus: 'STALE' };
+    }
+
+    const data = await fetchAndCache(cacheKey, fetcher);
+    return { data, cacheStatus: cached ? 'REFRESH' : 'MISS' };
+}
 
 // CORS configuration
 app.use(cors({
@@ -30,31 +80,11 @@ app.use(morgan('dev'));
 
 // Helper to create endpoint for Compass Group restaurants
 const createCachedEndpoint = (path, restaurant, targetUrl) => {
-    app.get(path, async (req, res) => {
-        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
-        
-        try {
-            // OPTIMIZATION: Check DB first for today's menu
-            // This prevents slow external API calls on every refresh if we already have the data locally.
-            // If data is stale or missing, only then do we fetch. 
-            // NOTE: We're not fully implementing the "check DB first" logic here yet to keep it simple and safe,
-            // but simply creating an endpoint that allows the frontend to rely on backend caching is the first step.
-            // However, the user asked why it's slow. It's slow because we await axios.get() on EVERY request.
-            
-            // To truly optimize:
-            // 1. Fetch from DB for 'today'
-            // 2. If found, return immediately
-            // 3. If not, fetch from external API, save, then return
-            
-            // Checking DB for existing menu for this date
-            /*
-             // This requires importing a 'getMenu' function from database.js which we haven't seen explicitly exported for this purpose yet, 
-             // but we can infer it or just proceed with the fix requested which was usually about the saving part.
-             // Actually, let's keep the current flow but ensuring we save ALL data helps future reads if we implement read-first.
-             // For now, the "slowness" is definitely the external fetch.
-             // Let's implement a simple in-memory cache time check or DB check if possible.
-            */ 
+    const cacheKey = `compass:${path}`;
 
+    app.get(path, async (req, res) => {
+        const fetcher = async () => {
+            const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
             const response = await axios.get(targetUrl);
             const menuData = response.data;
             
@@ -96,10 +126,21 @@ const createCachedEndpoint = (path, restaurant, targetUrl) => {
             } catch (dbError) {
                 console.error(`Failed to save menu for ${restaurant}:`, dbError.message);
             }
-            
-            res.set('Cache-Control', `public, max-age=${CACHE_MAX_AGE_HOURS * 3600}`);
-            res.json(menuData);
+
+            return menuData;
+        };
+
+        try {
+            const { data, cacheStatus } = await getCachedResponse(cacheKey, fetcher);
+            setCacheHeaders(res, cacheStatus);
+            res.json(data);
         } catch (error) {
+            const cached = memoryCache.get(cacheKey);
+            if (cached?.data) {
+                setCacheHeaders(res, 'STALE-ERROR');
+                res.json(cached.data);
+                return;
+            }
             console.error(`Error fetching ${restaurant}:`, error.message);
             res.status(500).json({ error: 'Failed to fetch menu' });
         }
@@ -243,9 +284,10 @@ async function scrapeAntellMenu(today, language = 'fi') {
 
 // Antell HTML parsing endpoint
 app.get('/antell-round', async (req, res) => {
-    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
-    
-    try {
+    const cacheKey = 'antell:fi';
+
+    const fetcher = async () => {
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
         const menuResponse = await scrapeAntellMenu(today, 'fi');
 
         // Save ALL parsed menus to database
@@ -258,17 +300,27 @@ app.get('/antell-round', async (req, res) => {
             }
         }
 
-        res.set('Cache-Control', `public, max-age=${CACHE_MAX_AGE_HOURS * 3600}`);
-        res.json(menuResponse);
-
+        return menuResponse;
+    };
+    
+    try {
+        const { data, cacheStatus } = await getCachedResponse(cacheKey, fetcher);
+        setCacheHeaders(res, cacheStatus);
+        res.json(data);
     } catch (error) {
+        const cached = memoryCache.get(cacheKey);
+        if (cached?.data) {
+            setCacheHeaders(res, 'STALE-ERROR');
+            res.json(cached.data);
+            return;
+        }
         console.error('Error fetching Antell menu:', error.message);
         res.status(500).json({ 
             RestaurantName: 'Antell Round',
             RestaurantUrl: 'https://www.antell.fi/round/',
             PriceHeader: null,
             MenusForDays: [{
-                Date: today,
+                Date: new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' }),
                 LunchTime: '',
             }],
             ErrorText: 'Failed to fetch menu'
@@ -278,13 +330,24 @@ app.get('/antell-round', async (req, res) => {
 
 // Antell English Endpoint
 app.get('/antell-round/en', async (req, res) => {
-    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
+    const cacheKey = 'antell:en';
+
+    const fetcher = async () => {
+        const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Helsinki' });
+        return await scrapeAntellMenu(today, 'en');
+    };
     
     try {
-        const menuResponse = await scrapeAntellMenu(today, 'en');
-        res.set('Cache-Control', `public, max-age=${CACHE_MAX_AGE_HOURS * 3600}`);
-        res.json(menuResponse);
+        const { data, cacheStatus } = await getCachedResponse(cacheKey, fetcher);
+        setCacheHeaders(res, cacheStatus);
+        res.json(data);
     } catch (error) {
+        const cached = memoryCache.get(cacheKey);
+        if (cached?.data) {
+            setCacheHeaders(res, 'STALE-ERROR');
+            res.json(cached.data);
+            return;
+        }
         console.error('Error fetching Antell EN menu:', error.message);
         res.status(500).json({ error: 'Failed to fetch English menu' });
     }
