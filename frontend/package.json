@@ -16,13 +16,13 @@
       "vue": "^3.3.4"
    },
    "devDependencies": {
-      "@vitejs/plugin-vue": "^6.0.7",
+      "@vitejs/plugin-vue": "^5.2.0",
       "autoprefixer": "^10.4.16",
       "postcss": "^8.5.15",
       "prettier": "3.0.3",
       "tailwindcss": "^3.3.5",
       "typescript": "^5.5.4",
-      "vite": "^8.0.14",
+      "vite": "^5.4.21",
       "vue-tsc": "^3.0.6"
    }
 }
