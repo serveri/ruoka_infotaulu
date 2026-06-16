@@ -171,6 +171,12 @@ async function scrapeAntellMenu(today, language = 'fi') {
         const menusForDays = [];
         const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
         
+        // Scrape lunch opening hours from the page
+        // Finnish: .opening-times--lounas, English: .opening-times--lunch
+        const hoursSelector = language === 'en' ? '.opening-times--lunch .hours' : '.opening-times--lounas .hours';
+        const hoursEl = document.querySelector(hoursSelector);
+        const lunchTime = hoursEl ? hoursEl.textContent.trim() : null;
+
         // Helper to get dates for the current week Monday-Friday
         const getCurrentWeekDate = (dayIndex) => {
             const d = new Date();
@@ -262,7 +268,7 @@ async function scrapeAntellMenu(today, language = 'fi') {
             if (setMenus.length > 0) {
                 menusForDays.push({
                     Date: getCurrentWeekDate(dayIndex),
-                    LunchTime: '10.00-13.30', // Hardcoded or scraped if available
+                    LunchTime: lunchTime, // Scraped from the Antell website
                     SetMenus: setMenus
                 });
             }
